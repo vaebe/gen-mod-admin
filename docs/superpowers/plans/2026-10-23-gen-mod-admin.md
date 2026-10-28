@@ -490,6 +490,8 @@ git commit -m "feat: 实现 Skill 版本发布与下载"
 
 ### 任务 8：管理后台页面
 
+- [x] **任务 8 已完成**
+
 **文件：**
 
 - 修改：`apps/admin/` 路由与页面
@@ -502,17 +504,17 @@ git commit -m "feat: 实现 Skill 版本发布与下载"
 - `/skills` Skill 列表、创建（选通用或游戏）、编辑说明与清单字段、上传文件夹（浏览器打 zip）或 zip、版本列表（最多 5）、删除版本、按版本下载
 - 非 admin 登录后看不到游戏/Skill 管理，接口 403 时提示
 
-- [ ] **步骤 1：若模板无 vue-router，安装 vue-router，不要改用 create-vue**
+- [x] **步骤 1：若模板无 vue-router，安装 vue-router，不要改用 create-vue**
 
-- [ ] **步骤 2：写登录页失败测试（提交后会打 `/auth/login`）再实现**
+- [x] **步骤 2：写登录页失败测试（提交后会打 `/auth/login`）再实现**
 
-- [ ] **步骤 3：游戏页、Skill 页同样 TDD：至少覆盖「无游戏可创建通用 Skill」「游戏 Skill 必须选游戏」「满 5 版本提示先删」**
+- [x] **步骤 3：游戏页、Skill 页同样 TDD：至少覆盖「无游戏可创建通用 Skill」「游戏 Skill 必须选游戏」「满 5 版本提示先删」**
 
 文件夹上传：浏览器 `JSZip` 或等价库打包，根目录必须是 `SKILL.md` 那一层。
 
-- [ ] **步骤 4：`vp build` 能产出静态资源**
+- [x] **步骤 4：`vp build` 能产出静态资源**
 
-- [ ] **步骤 5：Commit**
+- [x] **步骤 5：Commit**
 
 ```powershell
 git add apps/admin
