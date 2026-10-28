@@ -817,3 +817,11 @@ git diff --check
 真实浏览器成功发布并下载 `studio-workflow/1.0.0`，只读解包核对 Python、JSON 和入口文件；二进制单文件下载字节为 `[0,255,1,128,10]`。验证了 zip/文件夹导入、游戏创建与编辑、五版本限制、取消离开/退出与撤销、历史版本恢复。最后重启服务后的浏览器控制台没有捕获 warn/error。截图位于本次 visualizations 目录的 `admin-studio-editor.jpg` 和 `admin-skill-list.jpg`。
 
 本轮只改管理端及文档、依赖锁文件，没有修改服务端、数据库或桌面端。没有永久删除游戏或版本，没有远端迁移、实际部署或推送。继续保留本地 5173/8787 服务。
+
+## 2026-10-28 主题、间距与客户端 Logo
+
+- [x] 按最新反馈将绿色主题改为中性灰黑，压缩 Skill 面包屑、标题、说明与版本提示间距。浏览器核对编辑标题为 18px、标题区下间距为 12px、提示条约 34px。
+- [x] 复用客户端 `src-tauri/icons/128x128.png` 到管理端 `public/gen-mod-icon.png`，SHA256 一致；侧栏、登录页与 favicon 使用此资源，移除旧默认 favicon。客户端仓库只读，未修改。
+- [x] 对六个相关文件执行 `vp fmt ... --write --threads=2`，对四个修改的 Vue 文件执行 `vp lint ... --vue-plugin --deny-warnings --threads=2`，以及 `git diff --check`，均退出码 0。真实浏览器确认 Logo 成功加载、灰黑主题和紧凑页头，截图 `admin-neutral-compact.jpg`。本轮仅样式与静态资源，未重跑功能测试、类型检查或生产构建，不沿用此前测试结果作为本轮验证。
+
+功能提交：`0e52dc8`（`style: 调整中性主题与紧凑布局并复用客户端图标`）。未部署、未推送。
