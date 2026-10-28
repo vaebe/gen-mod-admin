@@ -278,6 +278,8 @@ git commit -m "feat: 接入 D1 R2 与 Cloudflare Worker"
 
 ### 任务 4：账号注册与登录
 
+- [x] **任务 4 已完成**
+
 **文件：**
 
 - 创建：`apps/server/src/auth.ts`
@@ -285,7 +287,7 @@ git commit -m "feat: 接入 D1 R2 与 Cloudflare Worker"
 - 测试：`apps/server/src/auth.test.ts`
 - 修改：`apps/server/src/index.ts`
 
-- [ ] **步骤 1：写失败测试**
+- [x] **步骤 1：写失败测试**
 
 覆盖：
 
@@ -324,7 +326,7 @@ describe('auth', () => {
 
 测试用注入的内存 D1/R2 mock 或 wrangler 本地 DB，不要连真实 Cloudflare。
 
-- [ ] **步骤 2：跑测试确认失败**
+- [x] **步骤 2：跑测试确认失败**
 
 ```powershell
 cd apps/server
@@ -333,14 +335,14 @@ bun test src/auth.test.ts
 
 预期：FAIL（路由不存在）。
 
-- [ ] **步骤 3：实现最少代码**
+- [x] **步骤 3：实现最少代码**
 
 - 密码：Workers 可用的 PBKDF2（Web Crypto），只存哈希。
 - 访问令牌：短时 JWT；刷新令牌：随机值，只存哈希。
 - Cookie 名例如 `gm_session`，`HttpOnly; Secure; SameSite=Lax; Path=/`。本地 http 开发可不设 Secure。
 - `ADMIN_EMAILS` 逗号分隔，大小写不敏感。
 
-- [ ] **步骤 4：跑测试确认通过**
+- [x] **步骤 4：跑测试确认通过**
 
 ```powershell
 cd apps/server
@@ -349,7 +351,7 @@ bun test src/auth.test.ts
 
 预期：PASS。
 
-- [ ] **步骤 5：Commit**
+- [x] **步骤 5：Commit**
 
 ```powershell
 git add apps/server
