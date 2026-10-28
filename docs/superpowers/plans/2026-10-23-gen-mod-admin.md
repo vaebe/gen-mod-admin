@@ -562,6 +562,8 @@ git commit -m "feat: 工作台入口改为登录后进入"
 
 ### 任务 10：官方目录、确认更新、按文件 id 下载
 
+- [x] **任务 10 已完成**
+
 **仓库：** `D:\codetest\gen-mod`
 
 **文件：**
@@ -572,7 +574,7 @@ git commit -m "feat: 工作台入口改为登录后进入"
 - 修改：Skills 页或独立更新提示 UI
 - 测试：Rust 测试用临时目录 + mock zip
 
-- [ ] **步骤 1：写失败测试**
+- [x] **步骤 1：写失败测试**
 
 1. 检查更新返回新游戏/新版本列表。
 2. 未确认 → 本机官方目录无该版本。
@@ -583,11 +585,11 @@ git commit -m "feat: 工作台入口改为登录后进入"
 
 已确认清单建议：`official/confirmed.json`，记录 `skillId`、`name`、`version`、`contentHash`、`fileId`、`manifest`。
 
-- [ ] **步骤 2：实现检查/确认/下载命令与提示文案**
+- [x] **步骤 2：实现检查/确认/下载命令与提示文案**
 
 提示必须包含规格第 7 节那五条后果。
 
-- [ ] **步骤 3：gen-mod commit**
+- [x] **步骤 3：gen-mod commit**
 
 ```powershell
 git commit -m "feat: 官方 Skill 需用户确认后才下载"
