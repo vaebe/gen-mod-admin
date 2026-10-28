@@ -695,3 +695,38 @@ git commit -m "feat: 导入受官方游戏约束且安装包不再带 Skill"
 - 无 TODO/待定占位。
 - `resolve_for_game`、`fileId`、`ManifestSnapshot`、`kind` 前后任务同名。
 - `create_mod` 从 `game_skill_name` 改为 `gameId` 的调用链已列出全部已知源码位置。
+
+## 2026-10-28 反馈复核与修正
+
+原任务勾选只记录当时实施步骤，不代表完整的交互验收。用户反馈后补充修正如下：
+
+- [x] 任务 8：参考 `D:\code\game-platform-admin`，页面迁至 `src/views/<模块>/index.vue`，拆分页面组件、API 模块、布局、状态与 composable；使用异步组件、类型化事件与 `defineModel`，整理单行压缩代码。
+- [x] 任务 7–8：说明与文件在一次发布请求中校验，说明、清单和版本在同一个 D1 batch 保存；写入失败保持原数据。补齐包内文件删除、清单数组表单、加载失败重试与登录失效处理。
+- [x] 任务 4：角色写入 D1，仅注册或登录时按 `ADMIN_EMAILS` 更新；提供旧账号数据不丢失的增量迁移与本地配置说明。
+- [x] 任务 7：发布期间并发出现重复版本时明确返回 409，不再返回通用 500。
+- [x] 任务 10：旧版本说明使用包内经过内容哈希验证的内容；所有选中包校验成功后才统一登记确认结果，批量失败不提前切换部分版本；版本显示文本与 Windows 目录名限制分开。
+
+本轮功能提交：
+
+- `gen-mod-admin`：`0f436bf`（服务端角色与发布一致性）；`677469f`（管理端页面结构与编辑流程）。
+- `gen-mod`：`3220410`（旧版 Skill 校验、整批确认与目录映射）。原有未提交改动均保留，未包含在该提交。
+
+本轮实际验证：
+
+| 工作目录 | 命令 | 结果 |
+| --- | --- | --- |
+| `gen-mod-admin` | `bun test apps/server/src` | 19 通过，0 失败；含角色迁移与发布回归测试 |
+| `gen-mod-admin` | `pnpm --dir apps/admin exec vp test run` | 14 通过，0 失败 |
+| `gen-mod-admin` | `pnpm --dir apps/admin exec vp fmt src --write` | 完成格式化 |
+| `gen-mod-admin` | `pnpm --dir apps/admin exec vp lint src --vue-plugin --deny-warnings` | 退出码 0 |
+| `gen-mod-admin` | `pnpm --dir apps/admin exec vue-tsc --build` | 退出码 0 |
+| `gen-mod-admin` | `pnpm --dir apps/admin exec vp build` | 退出码 0 |
+| `gen-mod-admin` | `node apps/admin/node_modules/typescript/bin/tsc --noEmit -p apps/server/tsconfig.json` | 退出码 0 |
+| `gen-mod-admin` | `pnpm --filter server exec wrangler deploy --dry-run` | API Worker 打包成功，未部署 |
+| `gen-mod-admin` | `pnpm --filter server exec wrangler deploy --dry-run --config ../admin/wrangler.jsonc` | 管理端 Worker 与静态资源打包成功，未部署 |
+| `gen-mod` | `cargo test --manifest-path src-tauri/Cargo.toml -j 1 --config 'profile.test.package.gen-mod.debug=0' --config 'profile.test.package.gen-mod.codegen-units=8' --lib` | 77 通过，0 失败，0 忽略 |
+| `gen-mod` | `codegraph sync`、`codegraph status` | 索引已同步，up to date |
+
+另外在全新临时目录运行 `wrangler d1 execute --local` 与 `wrangler dev --local --port 18787`，通过本地 D1/R2 的 26 项真实 HTTP 检查：注册登录、Cookie/令牌、游戏编辑与绑定、版本发布/上限/冲突、按 fileId 下载、移除版本以及普通用户权限。验证结束已停止本次 Worker。
+
+未进行浏览器人工交互验收、桌面端真实游戏任务验收、远端 Cloudflare 联调、远端迁移或部署。未推送。
