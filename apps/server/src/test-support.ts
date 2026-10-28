@@ -23,7 +23,11 @@ export function fixture(adminEmails = 'ADMIN@example.com') {
   }
   const objects = new Map<string, Uint8Array>()
   const env = {
-    DB: { prepare, batch: async (items: any[]) => sqlite.transaction(() => items.map(item => item.run()))() },
+    DB: { prepare, batch: async (items: any[]) => {
+      sqlite.exec('BEGIN')
+      try { const results = []; for (const item of items) { results.push(await item.run()) }; sqlite.exec('COMMIT'); return results }
+      catch (error) { sqlite.exec('ROLLBACK'); throw error }
+    } },
     SKILL_PACKS: {
       async put(key: string, bytes: Uint8Array) { objects.set(key, new Uint8Array(bytes)) },
       async get(key: string) { const bytes = objects.get(key); return bytes ? { body: bytes, arrayBuffer: async () => bytes.slice().buffer } : null },

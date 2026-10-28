@@ -4,9 +4,10 @@ import type { Env } from './env'
 import { authRoutes } from './auth'
 import { ApiError } from './errors'
 import { gameRoutes } from './games'
+import { skillRoutes } from './skills'
 
 export function createApp(env: Env) {
-  return new Elysia({ adapter: CloudflareAdapter })
+  return new Elysia({ adapter: CloudflareAdapter, normalize: 'typebox' })
     .decorate('env', env)
     .onError(({ error, set }) => {
       if (error instanceof ApiError) { set.status = error.status; return { error: error.message } }
@@ -14,5 +15,6 @@ export function createApp(env: Env) {
     .get('/', () => 'Hello Elysia')
     .use(authRoutes(env))
     .use(gameRoutes(env))
+    .use(skillRoutes(env))
     .compile()
 }
