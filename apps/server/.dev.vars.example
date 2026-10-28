@@ -1,0 +1,3 @@
+ADMIN_EMAILS="admin@example.com"
+JWT_SECRET="replace-with-a-random-local-secret"
+# 本地保持不设置 COOKIE_DOMAIN；生产环境设置父域。

@@ -6,9 +6,9 @@ import { digest, hashPassword, verifyPassword } from './password'
 const encoder = new TextEncoder()
 const base64url = (value: Uint8Array) => btoa(String.fromCharCode(...value)).replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_')
 const decode = (value: string) => Uint8Array.from(atob(value.replace(/-/g, '+').replace(/_/g, '/')), char => char.charCodeAt(0))
-type User = { id: string; email: string; password_hash: string }
+type User = { id: string; email: string; password_hash: string; role: 'admin' | 'user' }
 const role = (env: Env, email: string) => env.ADMIN_EMAILS.split(',').map(item => item.trim().toLowerCase()).includes(email.toLowerCase()) ? 'admin' : 'user'
-const publicUser = (env: Env, user: User) => ({ email: user.email, role: role(env, user.email) })
+const publicUser = (user: User) => ({ email: user.email, role: user.role })
 async function signingKey(env: Env) {
   if (!env.JWT_SECRET) { throw new Error('JWT_SECRET 未配置') }
   return crypto.subtle.importKey('raw', encoder.encode(env.JWT_SECRET), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign', 'verify'])
@@ -45,7 +45,7 @@ export async function authenticate(env: Env, request: Request) {
   }
   const user = userId ? await env.DB.prepare('SELECT * FROM users WHERE id=?').bind(userId).first<User>() : null
   if (!user) { throw new ApiError(401, '登录凭证无效') }
-  return { ...publicUser(env, user), id: user.id }
+  return { ...publicUser(user), id: user.id }
 }
 export async function requireAdmin(env: Env, request: Request) {
   const user = await authenticate(env, request)
@@ -58,27 +58,29 @@ export function authRoutes(env: Env) {
     .post('/auth/register', async ({ body }) => {
       const email = body.email.trim().toLowerCase()
       if (await env.DB.prepare('SELECT id FROM users WHERE email=?').bind(email).first()) { throw new ApiError(409, '邮箱已注册') }
-      const user = { id: crypto.randomUUID(), email, password_hash: await hashPassword(body.password) }
-      await env.DB.prepare('INSERT INTO users VALUES (?,?,?,?)').bind(user.id, email, user.password_hash, new Date().toISOString()).run()
-      return publicUser(env, user)
+      const user: User = { id: crypto.randomUUID(), email, password_hash: await hashPassword(body.password), role: role(env, email) }
+      await env.DB.prepare('INSERT INTO users(id,email,password_hash,role,created_at) VALUES (?,?,?,?,?)').bind(user.id, email, user.password_hash, user.role, new Date().toISOString()).run()
+      return publicUser(user)
     }, { body: credentials })
     .post('/auth/login', async ({ body, request, set }) => {
       const user = await env.DB.prepare('SELECT * FROM users WHERE email=?').bind(body.email.trim().toLowerCase()).first<User>()
       if (!user || !await verifyPassword(body.password, user.password_hash)) { throw new ApiError(401, '邮箱或密码不正确') }
+      user.role = role(env, user.email)
+      await env.DB.prepare('UPDATE users SET role=? WHERE id=?').bind(user.role, user.id).run()
       const refreshToken = crypto.randomUUID() + crypto.randomUUID()
       const expires = new Date(Date.now() + 30 * 86400000).toISOString()
       await env.DB.prepare('INSERT INTO refresh_tokens VALUES (?,?,?,?)').bind(crypto.randomUUID(), user.id, await digest(refreshToken), expires).run()
       const session = crypto.randomUUID()
       await env.DB.prepare('INSERT INTO cookie_sessions VALUES (?,?,?)').bind(session, user.id, expires).run()
       set.headers['set-cookie'] = cookieHeader(env, request, session, 30 * 86400)
-      return { ...publicUser(env, user), accessToken: await accessToken(env, user), refreshToken }
+      return { ...publicUser(user), accessToken: await accessToken(env, user), refreshToken }
     }, { body: credentials })
     .get('/auth/me', async ({ request }) => { const { id, ...user } = await authenticate(env, request); return user })
     .post('/auth/refresh', async ({ body }) => {
       const token = await env.DB.prepare('SELECT user_id FROM refresh_tokens WHERE token_hash=? AND expires_at>?').bind(await digest(body.refreshToken), new Date().toISOString()).first<{ user_id: string }>()
       const user = token ? await env.DB.prepare('SELECT * FROM users WHERE id=?').bind(token.user_id).first<User>() : null
       if (!user) { throw new ApiError(401, '登录凭证无效') }
-      return { ...publicUser(env, user), accessToken: await accessToken(env, user), refreshToken: body.refreshToken }
+      return { ...publicUser(user), accessToken: await accessToken(env, user), refreshToken: body.refreshToken }
     }, { body: t.Object({ refreshToken: t.String() }) })
     .post('/auth/logout', async ({ body, request, set }) => {
       if (body.refreshToken) {

@@ -49,3 +49,43 @@ test('D1 failure after successful R2 upload leaves version list unchanged', asyn
   expect(f.objects.size).toBe(1)
   expect((await f.request('/skills', 'GET', undefined, token)).body[0].versions).toEqual([])
 })
+
+test('publishing edited description validates and saves files and metadata together', async () => {
+  const f = fixture()
+  const token = (await f.login()).body.accessToken
+  const skill = (await f.request('/skills', 'POST', skillInput, token)).body
+  const form = upload('2', zipSync({ 'SKILL.md': strToU8('---\nname: workflow\ndescription: edited\n---\nbody') }))
+  form.set('description', 'edited')
+  const saved = await f.request(`/skills/${skill.id}/versions`, 'POST', form, token)
+  expect(saved.status).toBe(200)
+  expect((await f.request('/skills', 'GET', undefined, token)).body[0].description).toBe('edited')
+})
+
+test('failed publication preserves description and manifest as well as version list', async () => {
+  const f = fixture()
+  const token = (await f.login()).body.accessToken
+  const skill = (await f.request('/skills', 'POST', skillInput, token)).body
+  const form = upload('2', zipSync({ 'SKILL.md': strToU8('---\nname: workflow\ndescription: edited\n---\nbody') }))
+  form.set('description', 'edited')
+  form.set('dependencies', '["other"]')
+  f.failVersionWrites()
+  expect((await f.request(`/skills/${skill.id}/versions`, 'POST', form, token)).status).toBe(500)
+  const current = (await f.request('/skills', 'GET', undefined, token)).body[0]
+  expect(current).toMatchObject({ description: 'desc', dependencies: [], versions: [] })
+})
+
+test('a duplicate version created during R2 upload still returns an explicit conflict', async () => {
+  const f = fixture()
+  const token = (await f.login()).body.accessToken
+  const skill = (await f.request('/skills', 'POST', skillInput, token)).body
+  const put = f.env.SKILL_PACKS.put.bind(f.env.SKILL_PACKS)
+  f.env.SKILL_PACKS.put = (async (...args: Parameters<typeof put>) => {
+    const result = await put(...args)
+    f.sqlite.query('INSERT INTO skill_versions VALUES (?,?,?,?,?,?,?)').run('raced', skill.id, '1', 'existing-hash', 'existing-file', 'now', '{}')
+    return result
+  }) as typeof put
+  const result = await f.request(`/skills/${skill.id}/versions`, 'POST', upload('1'), token)
+  expect(result.status).toBe(409)
+  expect(result.body.error).toContain('版本号已存在')
+  expect(f.sqlite.query('SELECT id FROM skill_versions').all()).toEqual([{ id: 'raced' }])
+})

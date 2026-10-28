@@ -49,3 +49,13 @@ test('desktop and browser logout revoke only their own credentials', async () =>
   expect((await f.request('/auth/me', 'GET', undefined, undefined, cookie)).status).toBe(401)
   expect((await f.request('/auth/me', 'GET', undefined, desktop.body.accessToken)).status).toBe(200)
 })
+
+test('ADMIN_EMAILS changes take effect at the next login, not on every request', async () => {
+  const f = fixture()
+  const logged = await f.login()
+  f.env.ADMIN_EMAILS = ''
+  expect((await f.request('/auth/me', 'GET', undefined, logged.body.accessToken)).body.role).toBe('admin')
+  const next = await f.request('/auth/login', 'POST', { email: 'admin@example.com', password: 'password12' })
+  expect(next.body.role).toBe('user')
+  expect((await f.request('/auth/me', 'GET', undefined, next.body.accessToken)).body.role).toBe('user')
+})

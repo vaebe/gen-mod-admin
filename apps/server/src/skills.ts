@@ -53,6 +53,8 @@ export function skillRoutes(env: Env) {
       if (current.length >= 5) { throw new ApiError(409, '最多 5 个版本，请先移除旧版本') }
       const form = await request.formData()
       const version = form.get('version'); const zip = form.get('zip')
+      const description = form.get('description') ?? skill.description
+      if (typeof description !== 'string' || !description.trim()) { throw new ApiError(400, '需要 Skill 说明') }
       if (typeof version !== 'string' || !version.trim() || !(zip instanceof Blob)) { throw new ApiError(400, '需要版本号和 zip 文件') }
       if (current.some(item => item.version === version)) { throw new ApiError(409, '版本号已存在；内容变更请提高版本号') }
       const values: Record<string, unknown> = {}
@@ -65,17 +67,20 @@ export function skillRoutes(env: Env) {
       const manifest = { ...values, category: skill.kind, gameId: skill.gameId, version } as ManifestSnapshot
       const bytes = new Uint8Array(await zip.arrayBuffer())
       let contentHash: string
-      try { contentHash = await hashAndValidate(bytes, manifest, skill) } catch (error) { throw new ApiError(400, error instanceof Error ? error.message : 'zip 校验失败') }
+      try { contentHash = await hashAndValidate(bytes, manifest, { ...skill, description }) } catch (error) { throw new ApiError(400, error instanceof Error ? error.message : 'zip 校验失败') }
       const record: SkillVersionRecord = { id: crypto.randomUUID(), skillId: skill.id, version, contentHash, fileId: crypto.randomUUID(), uploadedAt: new Date().toISOString(), manifest }
       await env.SKILL_PACKS.put(record.fileId, bytes)
       // 同一次 D1 batch 内插入并保存清单字段；条件插入防止并发突破五版本上限。
       const results = await env.DB.batch([
-        env.DB.prepare('INSERT INTO skill_versions(id,skill_id,version,content_hash,file_id,uploaded_at,manifest) SELECT ?,?,?,?,?,?,? WHERE (SELECT COUNT(*) FROM skill_versions WHERE skill_id=?)<5')
-          .bind(record.id, skill.id, version, contentHash, record.fileId, record.uploadedAt, JSON.stringify(manifest), skill.id),
-        env.DB.prepare('UPDATE skills SET dependencies=?,exclude_paths=?,required_command_scripts=?,inspection_file=? WHERE id=? AND EXISTS (SELECT 1 FROM skill_versions WHERE id=?)')
-          .bind(JSON.stringify(manifest.dependencies), JSON.stringify(manifest.excludePaths), JSON.stringify(manifest.requiredCommandScripts), manifest.inspectionFile, skill.id, record.id),
+        env.DB.prepare('INSERT INTO skill_versions(id,skill_id,version,content_hash,file_id,uploaded_at,manifest) SELECT ?,?,?,?,?,?,? WHERE (SELECT COUNT(*) FROM skill_versions WHERE skill_id=?)<5 AND NOT EXISTS (SELECT 1 FROM skill_versions WHERE skill_id=? AND version=?)')
+          .bind(record.id, skill.id, version, contentHash, record.fileId, record.uploadedAt, JSON.stringify(manifest), skill.id, skill.id, version),
+        env.DB.prepare('UPDATE skills SET description=?,dependencies=?,exclude_paths=?,required_command_scripts=?,inspection_file=? WHERE id=? AND EXISTS (SELECT 1 FROM skill_versions WHERE id=?)')
+          .bind(description, JSON.stringify(manifest.dependencies), JSON.stringify(manifest.excludePaths), JSON.stringify(manifest.requiredCommandScripts), manifest.inspectionFile, skill.id, record.id),
       ])
-      if (results[0]!.meta.changes === 0) { throw new ApiError(409, '最多 5 个版本，请先移除旧版本') }
+      if (results[0]!.meta.changes === 0) {
+        const duplicate = await env.DB.prepare('SELECT id FROM skill_versions WHERE skill_id=? AND version=?').bind(skill.id, version).first()
+        throw new ApiError(409, duplicate ? '版本号已存在；内容变更请提高版本号' : '最多 5 个版本，请先移除旧版本')
+      }
       return record
     }, { parse: 'none' })
     .delete('/skills/:id/versions/:versionId', async ({ request, params }) => {

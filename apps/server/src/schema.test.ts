@@ -15,3 +15,12 @@ test('schema persists records and rejects duplicate versions and invalid referen
   expect(() => db.run("INSERT INTO skills(id,name,description,kind,created_at) VALUES ('bad','bad','desc','other','now')")).toThrow()
   db.close()
 })
+
+test('role migration preserves existing accounts and defaults them to users', () => {
+  const db = new Database(':memory:')
+  db.exec('CREATE TABLE users (id TEXT PRIMARY KEY, email TEXT NOT NULL UNIQUE, password_hash TEXT NOT NULL, created_at TEXT NOT NULL)')
+  db.run("INSERT INTO users VALUES ('existing','a@b.c','stored-hash','before')")
+  db.exec(readFileSync(new URL('../migrations/0001_persist_user_role.sql', import.meta.url), 'utf8'))
+  expect(db.query('SELECT * FROM users').get()).toEqual({ id: 'existing', email: 'a@b.c', password_hash: 'stored-hash', created_at: 'before', role: 'user' })
+  db.close()
+})

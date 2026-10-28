@@ -3,4 +3,5 @@ dist/
 coverage/
 .wrangler/
 .env
+.dev.vars
 *.tsbuildinfo
