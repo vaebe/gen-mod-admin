@@ -1,5 +1,19 @@
 # GenMod API
 
+代码按 [Elysia 官方最佳实践](https://elysiajs.com/essential/best-practice) 组织：
+
+```text
+src/modules/
+  auth/    index.ts、model.ts、service.ts、guard.ts、token.ts
+  games/   index.ts、model.ts、service.ts
+  skills/  index.ts、model.ts、service.ts
+  files/   index.ts（复用 Skill 的文件下载服务）
+```
+
+`index.ts` 是 Elysia controller，负责 URL、schema、Cookie 和响应；`model.ts` 定义校验并以 `.static` 推导类型；`service.ts` 接收已校验的数据和存储绑定，处理业务与持久化，不接收 Elysia Context。鉴权由 `auth/guard.ts` 的 `authorize` macro 复用。`app.ts` 仅组装模块与命名错误处理，Worker 绑定通过 `Cloudflare.Env` 声明。
+
+上传由 `t.File` 和 multipart 清单 schema 校验，清单字段的 JSON 解码也在模型中完成。Skill 内容校验与 canonical hash 保留在独立的 `skill-package.ts`，不依赖 HTTP 请求。
+
 项目使用 `bun create elysia apps/server --no-git` 生成，再接入 Workers、D1 和 R2。
 
 在仓库根执行 `pnpm install` 安装依赖。完整 API 使用 Workers 本地运行时：
