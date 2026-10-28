@@ -800,3 +800,20 @@ git diff --check
 截图保存在本次 Codex visualizations 目录：`browser-games-final.jpg`、`browser-skill-published.jpg`、`browser-final-skill.jpg`、`browser-version-limit.jpg`、`browser-player-permission.jpg`、`browser-api-error-keeps-session.jpg`。
 
 本轮没有实际删除游戏或已发布版本，没有执行桌面端真实游戏任务、远端部署或推送。结束时保留本地 5173/8787 服务和测试管理员浏览器页面，供继续查看。
+
+## 2026-10-28 管理界面与文件工作区改版
+
+- [x] 使用 shadcn-vue 官方 Vite 接入流程和官方 CLI 生成基础组件，统一导航、按钮、输入、对话框和页签；游戏管理改为表格与新增/编辑对话框。
+- [x] Skill 管理拆为列表、新增、编辑路由，支持游戏与名称筛选；创建后身份不变，继续使用原有 API 与版本规则。
+- [x] 新建默认 `SKILL.md`；增加可展开/调整宽度的文件树、多文件页签、Monaco 代码编辑器、Markdown 预览、重命名和删除，保留任意 UTF-8 文本及二进制原字节。
+- [x] 增加离开、替换文件、加载历史版本前的修改保护；取消退出不清登录凭证，失败发布保留内容，清单单独保存不会误清文件修改状态。
+- [x] 按用户最新要求移除全部移动端断点与响应式类，采用最小宽度 1200px 的固定桌面布局；用户手动收起文件树、清单的功能保留。
+- [x] 运行管理端 36 项测试、Vue lint、类型检查、生产构建与管理端 Worker dry-run，并执行真实浏览器创建、编辑、发布、上传和下载验证。
+
+功能提交：`e3967e0`（`refactor: 使用 shadcn-vue 重建管理界面与文件编辑器`）。具体施工顺序、失败与修复记录、最终命令见 [本轮计划](./2026-10-28-admin-ui.md)。所有原任务勾选保持不变。
+
+最终验证：`vp test run --maxWorkers=2` 为 36 通过、0 失败；`vp lint src --vue-plugin --deny-warnings --threads=2`、`vue-tsc --build`、`vp build` 和 `wrangler deploy --dry-run --config ../admin/wrangler.jsonc` 均退出码 0，dry-run 读取 152 个静态资源，未部署。构建保留 Monaco 大 chunk 提示；本机不限并发时的资源不足已通过限制线程、短暂停止并恢复本次 Vite 服务解决。
+
+真实浏览器成功发布并下载 `studio-workflow/1.0.0`，只读解包核对 Python、JSON 和入口文件；二进制单文件下载字节为 `[0,255,1,128,10]`。验证了 zip/文件夹导入、游戏创建与编辑、五版本限制、取消离开/退出与撤销、历史版本恢复。最后重启服务后的浏览器控制台没有捕获 warn/error。截图位于本次 visualizations 目录的 `admin-studio-editor.jpg` 和 `admin-skill-list.jpg`。
+
+本轮只改管理端及文档、依赖锁文件，没有修改服务端、数据库或桌面端。没有永久删除游戏或版本，没有远端迁移、实际部署或推送。继续保留本地 5173/8787 服务。
