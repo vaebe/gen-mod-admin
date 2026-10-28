@@ -3,6 +3,7 @@ import { CloudflareAdapter } from 'elysia/adapter/cloudflare-worker'
 import type { Env } from './env'
 import { authRoutes } from './auth'
 import { ApiError } from './errors'
+import { gameRoutes } from './games'
 
 export function createApp(env: Env) {
   return new Elysia({ adapter: CloudflareAdapter })
@@ -12,5 +13,6 @@ export function createApp(env: Env) {
     })
     .get('/', () => 'Hello Elysia')
     .use(authRoutes(env))
+    .use(gameRoutes(env))
     .compile()
 }
