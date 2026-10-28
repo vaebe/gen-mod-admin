@@ -17,6 +17,11 @@ function submit(): Promise<boolean> {
     emit("authenticated", await login(form));
   });
 }
+
+function toggleMode(): void {
+  registering.value = !registering.value;
+  error.value = "";
+}
 </script>
 
 <template>
@@ -44,7 +49,7 @@ function submit(): Promise<boolean> {
         </button>
       </fieldset>
     </form>
-    <button type="button" class="text-button" :disabled="busy" @click="registering = !registering">
+    <button type="button" class="text-button" :disabled="busy" @click="toggleMode">
       {{ registering ? "已有账号，前往登录" : "没有账号，注册" }}
     </button>
   </section>

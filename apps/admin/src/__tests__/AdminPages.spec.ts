@@ -247,6 +247,21 @@ it("publishes edited description in the same request as the version files", asyn
   await flushUI();
   const request = fetch.mock.calls.find(([url]) => url === "/api/skills/s/versions");
   expect((request?.[1]?.body as FormData)?.get("description")).toBe("edited");
+  expect((forms[forms.length - 1]!.get("input").element as HTMLInputElement).value).toBe("");
+});
+
+it("clears the previous request error when switching between login and registration", async () => {
+  vi.stubGlobal(
+    "fetch",
+    vi.fn().mockResolvedValue(new Response('{"error":"邮箱或密码不正确"}', { status: 401 })),
+  );
+  const page = mount(LoginPage);
+  await page.get("form").trigger("submit");
+  await flushUI();
+  expect(page.text()).toContain("邮箱或密码不正确");
+  await page.get(".text-button").trigger("click");
+  expect(page.text()).toContain("创建账号");
+  expect(page.text()).not.toContain("邮箱或密码不正确");
 });
 
 it("removes selected files from the package without touching other bytes", async () => {

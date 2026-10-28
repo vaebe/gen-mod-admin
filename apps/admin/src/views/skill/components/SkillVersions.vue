@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref } from "vue";
+import { computed } from "vue";
 import type { SkillVersionRecord } from "@/types";
 
 const { versions, busy = false } = defineProps<{
@@ -12,7 +12,7 @@ const emit = defineEmits<{
   download: [version: SkillVersionRecord];
   edit: [version: SkillVersionRecord];
 }>();
-const version = ref("");
+const version = defineModel<string>("version", { default: "" });
 const duplicate = computed(() => versions.some((item) => item.version === version.value));
 
 function publish(): void {

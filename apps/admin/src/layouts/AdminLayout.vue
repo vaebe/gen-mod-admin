@@ -20,7 +20,9 @@ const emit = defineEmits<{ logout: [] }>();
         <template v-if="user">
           <small>{{ user.email }}</small>
           <span class="badge">{{ user.role === "admin" ? "管理员" : "普通用户" }}</span>
-          <button type="button" :disabled="busy" @click="emit('logout')">退出登录</button>
+          <button type="button" class="sign-out" :disabled="busy" @click="emit('logout')">
+            退出登录
+          </button>
         </template>
         <small v-else>官方内容管理平台</small>
       </div>
@@ -28,3 +30,9 @@ const emit = defineEmits<{ logout: [] }>();
     <main class="main-content"><slot /></main>
   </div>
 </template>
+
+<style scoped>
+.sign-out {
+  color: var(--accent);
+}
+</style>

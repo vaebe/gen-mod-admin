@@ -20,6 +20,7 @@ export function useSkillEditor(getSkill: () => CatalogSkill, changed: () => void
     inspectionFile: skill.inspectionFile,
   });
   const files = shallowRef<Record<string, Uint8Array>>({});
+  const version = shallowRef("");
   const state = useRequestState();
 
   function saveMetadata(): Promise<boolean> {
@@ -46,14 +47,14 @@ export function useSkillEditor(getSkill: () => CatalogSkill, changed: () => void
     });
   }
 
-  function publish(version: string): Promise<boolean> {
+  function publish(versionNumber: string): Promise<boolean> {
     return state.run(async () => {
       if (!files.value["SKILL.md"]) {
         throw new Error("包根目录必须包含 SKILL.md");
       }
       const form = new FormData();
       form.set("zip", new Blob([new Uint8Array(zipSync(files.value)).buffer]), "skill.zip");
-      form.set("version", version);
+      form.set("version", versionNumber);
       form.set("description", metadata.value.description);
       for (const key of [
         "dependencies",
@@ -64,6 +65,7 @@ export function useSkillEditor(getSkill: () => CatalogSkill, changed: () => void
         form.set(key, JSON.stringify(metadata.value[key]));
       }
       await publishSkillVersion(getSkill().id, form);
+      version.value = "";
       state.notice.value = "新版本已发布";
       changed();
     });
@@ -107,7 +109,18 @@ export function useSkillEditor(getSkill: () => CatalogSkill, changed: () => void
     });
   }
 
-  return { ...state, metadata, files, saveMetadata, importFiles, publish, edit, download, remove };
+  return {
+    ...state,
+    metadata,
+    files,
+    version,
+    saveMetadata,
+    importFiles,
+    publish,
+    edit,
+    download,
+    remove,
+  };
 }
 
 function unpackFiles(bytes: Uint8Array): Record<string, Uint8Array> {

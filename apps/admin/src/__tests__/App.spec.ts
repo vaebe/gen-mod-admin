@@ -10,6 +10,7 @@ enableAutoUnmount(afterEach);
 afterEach(() => {
   user.value = null;
   vi.unstubAllGlobals();
+  vi.restoreAllMocks();
 });
 it("shows management navigation only for administrators", async () => {
   const router = createRouter({
@@ -53,4 +54,21 @@ it("returns to login only for an explicit 401, keeping session on service errors
   await flushPromises();
   expect(user.value).toBeNull();
   expect(router.currentRoute.value.path).toBe("/login");
+});
+
+it("does not attach the login event listener to fragment route pages", async () => {
+  const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+  const router = createRouter({
+    history: createMemoryHistory(),
+    routes: [{ path: "/", component: { template: "<h1>route page</h1><p>content</p>" } }],
+  });
+  await router.push("/");
+  mount(App, { global: { plugins: [router] } });
+  await vi.dynamicImportSettled();
+  await flushPromises();
+  expect(
+    warn.mock.calls.some((args) =>
+      args.some((value) => String(value).includes("Extraneous non-emits event listeners")),
+    ),
+  ).toBe(false);
 });

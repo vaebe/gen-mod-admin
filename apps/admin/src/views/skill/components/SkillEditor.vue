@@ -11,6 +11,7 @@ const SkillVersions = defineAsyncComponent(() => import("./SkillVersions.vue"));
 const {
   metadata,
   files,
+  version,
   busy,
   error,
   notice,
@@ -63,6 +64,7 @@ function selectFiles(event: Event, folder: boolean): void {
       </div>
       <SkillFiles v-model="files" />
       <SkillVersions
+        v-model:version="version"
         :versions="skill.versions"
         :busy="busy"
         @publish="publish"
