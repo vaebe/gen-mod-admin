@@ -525,6 +525,8 @@ git commit -m "feat: 实现游戏与 Skill 管理界面"
 
 ### 任务 9：桌面端登录门
 
+- [x] **任务 9 已完成**
+
 **仓库：** `D:\codetest\gen-mod`
 
 **文件：**
@@ -535,20 +537,20 @@ git commit -m "feat: 实现游戏与 Skill 管理界面"
 - 修改：`src-tauri/src/lib.rs` 注册命令
 - 测试：`src-tauri` 内 auth 命令测试（mock HTTP）
 
-- [ ] **步骤 1：写失败测试**
+- [x] **步骤 1：写失败测试**
 
 1. 无令牌调用需要登录的命令 → 错误，不清磁盘项目。
 2. 登录成功把 access/refresh 写入应用配置目录，不是 Skill 目录。
 3. access 过期则 refresh；refresh 返回 401 → 命令报凭证无效（前端回登录页）。
 4. refresh 网络失败 → 错误信息，配置里的令牌仍在。
 
-- [ ] **步骤 2：实现 `cloud_register` / `cloud_login` / `cloud_logout` / `cloud_me`**
+- [x] **步骤 2：实现 `cloud_register` / `cloud_login` / `cloud_logout` / `cloud_me`**
 
 API 根地址放现有配置文件，不要写死生产域名在多处。
 
-- [ ] **步骤 3：前端未登录只渲染登录页**
+- [x] **步骤 3：前端未登录只渲染登录页**
 
-- [ ] **步骤 4：在 gen-mod 仓库 commit**
+- [x] **步骤 4：在 gen-mod 仓库 commit**
 
 ```powershell
 cd D:\codetest\gen-mod
