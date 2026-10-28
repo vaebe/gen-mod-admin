@@ -453,12 +453,14 @@ git commit -m "feat: 按现有 validate 规则校验 Skill zip"
 
 ### 任务 7：Skill 与版本 API
 
+- [x] **任务 7 已完成**
+
 **文件：**
 
 - 创建：`apps/server/src/skills.ts`
 - 测试：`apps/server/src/skills.test.ts`
 
-- [ ] **步骤 1：写失败测试**
+- [x] **步骤 1：写失败测试**
 
 1. 无游戏时创建 `kind=common` 成功。
 2. `kind=game` 且 `gameId` 不存在 → 拒绝。
@@ -473,11 +475,11 @@ git commit -m "feat: 按现有 validate 规则校验 Skill zip"
 11. `GET /skills` 登录用户可见列表（含版本、fileId、manifest），不含 zip 字节。
 12. 保存时 R2 成功、写 D1 失败（mock）→ 列表仍无新版本。
 
-- [ ] **步骤 2：实现**
+- [x] **步骤 2：实现**
 
 `POST /skills` 创建记录（可 0 版本）。第一期允许空 Skill 实体，但 `GET` 给桌面的「可确认版本」为空。上传：`POST /skills/:id/versions` multipart：`zip` + `version` + 清单字段。先 R2（key=fileId UUID）再 insert 版本。
 
-- [ ] **步骤 3：测试通过后 commit**
+- [x] **步骤 3：测试通过后 commit**
 
 ```powershell
 git add apps/server
