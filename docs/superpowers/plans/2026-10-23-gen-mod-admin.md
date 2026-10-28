@@ -402,13 +402,15 @@ git commit -m "feat: 实现游戏管理接口"
 
 ### 任务 6：zip 校验与内容哈希
 
+- [x] **任务 6 已完成**
+
 **文件：**
 
 - 创建：`apps/server/src/skill-package.ts`
 - 测试：`apps/server/src/skill-package.test.ts`
 - 测试夹具：从 `D:\codetest\gen-mod\skills` 打一个合法 zip（只含 `common/mod-workflow` 目录内容，根上就是 `SKILL.md`），以及缺 `SKILL.md` 的非法 zip。
 
-- [ ] **步骤 1：写失败测试**
+- [x] **步骤 1：写失败测试**
 
 对照 `D:\codetest\gen-mod\src-tauri\src\skills\registry.rs` 的 `validate`：
 
@@ -436,11 +438,11 @@ git commit -m "feat: 实现游戏管理接口"
 
 canonical JSON 字段顺序与 Rust 代码一致：`category`、`gameId`、`version`、`dependencies`、`excludePaths`、`requiredCommandScripts`、`inspectionFile`。
 
-- [ ] **步骤 2：实现 `hashAndValidate(zipBytes, manifest)`**
+- [x] **步骤 2：实现 `hashAndValidate(zipBytes, manifest)`**
 
 在 Worker 里解析 zip 条目，不要写本地磁盘。Markdown 引用检查对 zip 内路径做，禁止 `..` 越出包根。
 
-- [ ] **步骤 3：用 `mod-workflow` 真实目录打 zip 跑通，再 commit**
+- [x] **步骤 3：用 `mod-workflow` 真实目录打 zip 跑通，再 commit**
 
 ```powershell
 git add apps/server
