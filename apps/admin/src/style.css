@@ -34,17 +34,17 @@
 :root {
   font-family: var(--font-sans);
   font-synthesis: none;
-  --background: oklch(0.988 0.002 160);
-  --foreground: oklch(0.24 0.015 160);
+  --background: oklch(0.985 0 0);
+  --foreground: oklch(0.205 0 0);
   --card: oklch(1 0 0);
-  --primary: oklch(0.43 0.095 160);
+  --primary: oklch(0.205 0 0);
   --primary-foreground: oklch(0.99 0 0);
-  --muted: oklch(0.96 0.004 160);
-  --muted-foreground: oklch(0.47 0.012 160);
-  --accent: oklch(0.94 0.02 160);
+  --muted: oklch(0.96 0 0);
+  --muted-foreground: oklch(0.47 0 0);
+  --accent: oklch(0.94 0 0);
   --destructive: oklch(0.5 0.19 27);
-  --border: oklch(0.9 0.008 160);
-  --ring: oklch(0.5 0.09 160);
+  --border: oklch(0.9 0 0);
+  --ring: oklch(0.6 0 0);
   --radius: 0.5rem;
 }
 @layer base {

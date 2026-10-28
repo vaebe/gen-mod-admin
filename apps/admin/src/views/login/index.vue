@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { reactive, shallowRef } from "vue";
-import { Layers, ArrowRight } from "@lucide/vue";
+import { ArrowRight } from "@lucide/vue";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import type { AuthUser } from "@/types";
@@ -26,9 +26,8 @@ function toggleMode(): void {
 <template>
   <section class="mx-auto w-full max-w-sm">
     <div class="mb-10 flex items-center justify-center gap-2.5">
-      <span class="grid size-9 place-items-center rounded-lg bg-primary text-primary-foreground"
-        ><Layers :size="22" /></span
-      ><span class="text-xl font-semibold tracking-tight"
+      <img src="/gen-mod-icon.png" alt="" width="36" height="36" class="size-9 object-contain" />
+      <span class="text-xl font-semibold tracking-tight"
         >GenMod <span class="font-normal text-muted-foreground">Admin</span></span
       >
     </div>

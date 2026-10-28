@@ -66,10 +66,10 @@ const {
 </script>
 <template>
   <section :aria-busy="busy">
-    <header class="page-heading">
+    <header class="page-heading mb-3">
       <div>
         <div class="flex items-center gap-3">
-          <h1 :class="{ 'font-mono text-xl': !isNew }">{{ isNew ? "新增 Skill" : skill.name }}</h1>
+          <h1 :class="{ 'font-mono text-lg': !isNew }">{{ isNew ? "新增 Skill" : skill.name }}</h1>
           <span
             v-if="!isNew"
             class="label-tag"
@@ -77,7 +77,7 @@ const {
             >{{ skill.kind === "common" ? "通用 Skill" : "游戏 Skill" }}</span
           >
         </div>
-        <p class="page-description">
+        <p class="page-description mt-1 text-xs leading-5">
           {{
             isNew
               ? "填写基本信息，编写文件，然后发布首个版本。"
@@ -104,8 +104,8 @@ const {
       </div>
     </header>
     <p v-if="error && !publishOpen" role="alert" class="error">{{ error }}</p>
-    <p v-if="notice" role="status" class="notice">
-      <Check :size="15" class="shrink-0" />{{ notice }}
+    <p v-if="notice" role="status" class="notice editor-notice">
+      <Check :size="13" class="shrink-0" />{{ notice }}
     </p>
     <SkillIdentityForm
       v-if="isNew"
@@ -206,6 +206,15 @@ const {
   </section>
 </template>
 <style scoped>
+.editor-notice {
+  margin-bottom: 12px;
+  padding: 6px 10px;
+  border-color: var(--border);
+  background: var(--muted);
+  color: var(--muted-foreground);
+  font-size: 12px;
+  line-height: 20px;
+}
 .workspace-shell {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 280px;

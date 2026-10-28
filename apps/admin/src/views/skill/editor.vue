@@ -91,7 +91,7 @@ async function created(next: CatalogSkill): Promise<void> {
 
 <template>
   <div>
-    <nav class="page-breadcrumb" aria-label="面包屑">
+    <nav class="page-breadcrumb mb-2" aria-label="面包屑">
       <RouterLink to="/skills">Skill 管理</RouterLink><ChevronRight :size="12" /><span>{{
         skill?.id ? skill.name : "新增 Skill"
       }}</span>

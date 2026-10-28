@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useRoute } from "vue-router";
-import { Gamepad2, Boxes, LogOut, ChevronRight, Layers, UserRound } from "@lucide/vue";
+import { Gamepad2, Boxes, LogOut, ChevronRight, UserRound } from "@lucide/vue";
 import { Button } from "@/components/ui/button";
 import type { AuthUser } from "@/types";
 
@@ -13,7 +13,7 @@ const route = useRoute();
   <div v-if="user" class="admin-shell">
     <aside class="admin-sidebar">
       <RouterLink to="/" class="brand-link">
-        <span class="brand-icon"><Layers :size="21" /></span>
+        <img src="/gen-mod-icon.png" alt="" width="32" height="32" class="brand-icon" />
         <span class="font-semibold tracking-tight"
           >GenMod <span class="font-normal text-muted-foreground">Admin</span></span
         >
@@ -83,18 +83,15 @@ const route = useRoute();
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 24px 20px 32px;
+  padding: 20px 20px 24px;
   text-decoration: none;
   font-size: 16px;
 }
 .brand-icon {
-  display: grid;
-  place-items: center;
+  flex-shrink: 0;
   height: 32px;
   width: 32px;
-  border-radius: 8px;
-  background: var(--primary);
-  color: white;
+  object-fit: contain;
 }
 .nav-section-label {
   padding: 0 24px 12px;
@@ -155,8 +152,8 @@ const route = useRoute();
   display: flex;
   align-items: center;
   gap: 10px;
-  height: 60px;
-  padding: 0 32px;
+  height: 52px;
+  padding: 0 28px;
   border-bottom: 1px solid var(--border);
   background: var(--card);
   font-size: 12px;
@@ -164,7 +161,7 @@ const route = useRoute();
 .main-content {
   max-width: 1760px;
   margin: 0 auto;
-  padding: 32px;
+  padding: 24px 28px;
 }
 .auth-shell {
   display: grid;
