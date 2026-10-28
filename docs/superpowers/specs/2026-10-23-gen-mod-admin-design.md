@@ -192,25 +192,15 @@ bun dev
 
 ### 10.2 前端 `apps/admin`
 
-按 [Vue 快速上手](https://cn.vuejs.org/guide/quick-start.html) 创建单页应用。官方推荐 `create-vue`（Vite + 单文件组件）。本仓库包管理器是 pnpm：
+按 [Vite+ Creating a Project](https://viteplus.dev/guide/create) 创建 Vue 应用。不使用 `create-vue`。本仓库包管理器是 pnpm，不装全局 `vp` 时用：
 
 ```bash
-pnpm create vue@latest apps/admin
+pnpm create vite-plus vue --directory apps/admin --package-manager pnpm --no-git
 ```
 
-脚手架选项固定为：
+这是 Vite+ 的 `vue` 模板。生成结果是 Vue 3 单页应用，使用 TypeScript、单文件组件和组合式 API（`<script setup>`）。开发、测试、生产构建走 Vite+ 命令（`pnpm exec vp dev` / `vp test` / `vp build`）。产物按 Workers Static Assets 发布。
 
-- TypeScript：Yes
-- JSX：No
-- Vue Router：Yes
-- Pinia：No
-- Vitest：Yes
-- End-to-End Testing：No
-- ESLint：Yes
-- Prettier：No
-- Vue DevTools 7：No
-
-生成结果使用组合式 API 和 `<script setup>`。不使用 Nuxt，也不使用 CDN 无构建方式。生产构建用官方的 `pnpm run build`，产物按 Workers Static Assets 发布。
+不使用 Nuxt，也不使用 CDN 无构建方式。仓库已有 git，脚手架加 `--no-git`。模板若未带 Vue Router，在该脚手架之上安装 `vue-router`，不改用另一套创建工具。
 
 ### 10.3 仓库收口
 
@@ -220,7 +210,7 @@ pnpm create vue@latest apps/admin
 
 ```text
 gen-mod-admin/
-  apps/admin/     Vue 3 管理后台（create-vue）
+  apps/admin/     Vue 3 管理后台（Vite+ vue 模板）
   apps/server/    Elysia API（bun create elysia）
   docs/superpowers/specs/
 ```
