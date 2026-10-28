@@ -174,12 +174,54 @@ Skill 的稳定标识是数据库中的 Skill id。名称在同一套官方 Skil
 
 这期不测安装包发布，也不把部署到 Cloudflare 当作功能测试的一部分。
 
-## 10. 仓库布局
+## 10. 项目初始化
+
+两个应用都用官方脚手架生成，再放进 pnpm monorepo 的 `apps/`。不手写空项目替代官方模板。
+
+### 10.1 后端 `apps/server`
+
+按 [Elysia Quick Start](https://elysiajs.com/quick-start.html) 初始化。官方推荐 `bun create elysia`：
+
+```bash
+bun create elysia apps/server
+cd apps/server
+bun dev
+```
+
+本地开发用官方的 Bun 开发服务器。Cloudflare Workers、D1、R2 在这个脚手架之上接入，不改用另一套后端框架或另一套官方未记载的起始模板。
+
+### 10.2 前端 `apps/admin`
+
+按 [Vue 快速上手](https://cn.vuejs.org/guide/quick-start.html) 创建单页应用。官方推荐 `create-vue`（Vite + 单文件组件）。本仓库包管理器是 pnpm：
+
+```bash
+pnpm create vue@latest apps/admin
+```
+
+脚手架选项固定为：
+
+- TypeScript：Yes
+- JSX：No
+- Vue Router：Yes
+- Pinia：No
+- Vitest：Yes
+- End-to-End Testing：No
+- ESLint：Yes
+- Prettier：No
+- Vue DevTools 7：No
+
+生成结果使用组合式 API 和 `<script setup>`。不使用 Nuxt，也不使用 CDN 无构建方式。生产构建用官方的 `pnpm run build`，产物按 Workers Static Assets 发布。
+
+### 10.3 仓库收口
+
+根目录用 pnpm workspace 包含 `apps/admin` 和 `apps/server`。前后端共享的请求/响应类型放在工作区里，不另起第三套脚手架。
+
+## 11. 仓库布局
 
 ```text
 gen-mod-admin/
-  apps/admin/     Vue 3 管理后台
-  apps/server/    Elysia API
+  apps/admin/     Vue 3 管理后台（create-vue）
+  apps/server/    Elysia API（bun create elysia）
   docs/superpowers/specs/
 ```
 
