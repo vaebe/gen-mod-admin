@@ -209,6 +209,9 @@ importers:
 
   apps/admin:
     dependencies:
+      fflate:
+        specifier: ^0.8.3
+        version: 0.8.3
       vue:
         specifier: ^3.5.42
         version: 3.5.44(typescript@6.0.3)
@@ -3377,6 +3380,7 @@ snapshots:
       - msw
       - utf-8-validate
       - vite
+    optional: true
 
   '@vitest/browser-preview@5.0.5(@voidzero-dev/vite-plus-core@1.4.0(@types/node@24.19.2)(@volar/typescript@2.4.28(typescript@6.0.3))(@vue/language-core@3.3.13)(typescript@6.0.3)(vue-tsc@3.3.13(typescript@6.0.3)))(vitest@5.0.5)':
     dependencies:
@@ -3407,6 +3411,7 @@ snapshots:
       - msw
       - utf-8-validate
       - vite
+    optional: true
 
   '@vitest/browser@5.0.5(@voidzero-dev/vite-plus-core@1.4.0(@types/node@24.19.2)(@volar/typescript@2.4.28(typescript@6.0.3))(@vue/language-core@3.3.13)(typescript@6.0.3)(vue-tsc@3.3.13(typescript@6.0.3)))(vitest@5.0.5)':
     dependencies:
