@@ -362,13 +362,15 @@ git commit -m "feat: 实现注册登录与双凭证"
 
 ### 任务 5：游戏管理 API
 
+- [x] **任务 5 已完成**
+
 **文件：**
 
 - 创建：`apps/server/src/games.ts`
 - 测试：`apps/server/src/games.test.ts`
 - 修改：`apps/server/src/index.ts`
 
-- [ ] **步骤 1：写失败测试**
+- [x] **步骤 1：写失败测试**
 
 1. 普通用户 `POST /games` → 403。
 2. 管理员创建 `{ id, name, description }` 成功。
@@ -378,18 +380,18 @@ git commit -m "feat: 实现注册登录与双凭证"
 6. 无 Skill 绑定时可删除；有 Skill 绑定不可删除。
 7. `GET /games` 登录用户可列出（桌面端同步用）。
 
-- [ ] **步骤 2：跑测试确认失败**
+- [x] **步骤 2：跑测试确认失败**
 
 ```powershell
 cd apps/server
 bun test src/games.test.ts
 ```
 
-- [ ] **步骤 3：实现路由**
+- [x] **步骤 3：实现路由**
 
 `POST /games`、`PATCH /games/:id`、`DELETE /games/:id` 需 admin。`GET /games` 需登录。
 
-- [ ] **步骤 4：跑测试确认通过并 commit**
+- [x] **步骤 4：跑测试确认通过并 commit**
 
 ```powershell
 git add apps/server
