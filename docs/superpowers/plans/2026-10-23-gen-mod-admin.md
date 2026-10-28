@@ -599,6 +599,8 @@ git commit -m "feat: 官方 Skill 需用户确认后才下载"
 
 ### 任务 11：按游戏标识加载，替换 resolve(game_skill_name)
 
+- [x] **任务 11 已完成**
+
 **仓库：** `D:\codetest\gen-mod`
 
 **文件（全部改掉按能力名 resolve 的路径）：**
@@ -623,15 +625,15 @@ views = 已确认官方（每 skill 取 uploadedAt 最新已确认版本）∪ �
 若没有任何 enabled 的官方 category==game 且 gameId==所选游戏 → 禁止 create_mod / 禁止新会话
 ```
 
-- [ ] **步骤 1：先写 `resolve_for_game` 单测**（临时目录布置一个官方游戏 Skill + 一个通用 + 一个导入）
+- [x] **步骤 1：先写 `resolve_for_game` 单测**（临时目录布置一个官方游戏 Skill + 一个通用 + 一个导入）
 
-- [ ] **步骤 2：把所有 `resolve(&app, &project.game_skill_name)` 换成 `resolve_for_game(&app, &project.game_id)`**
+- [x] **步骤 2：把所有 `resolve(&app, &project.game_skill_name)` 换成 `resolve_for_game(&app, &project.game_id)`**
 
 `game_skill_name` 字段可继续写入历史值（例如已确认官方游戏 Skill 的 name 之一）以免旧 UI 崩，但加载不得再用它。`NewModDialog` 与 `create_mod` 参数改为 `gameId`。
 
-- [ ] **步骤 3：刷新会话只读测试：确认更新后旧快照会话 `read_only=true`；进行中不删旧目录**
+- [x] **步骤 3：刷新会话只读测试：确认更新后旧快照会话 `read_only=true`；进行中不删旧目录**
 
-- [ ] **步骤 4：gen-mod commit**
+- [x] **步骤 4：gen-mod commit**
 
 ```powershell
 git commit -m "feat: 按游戏标识加载官方与导入 Skill"
