@@ -1,5 +1,5 @@
 import { onMounted, onUnmounted } from "vue";
-import { useRouter } from "vue-router";
+import { isNavigationFailure, useRouter } from "vue-router";
 import type { AuthUser } from "@/types";
 import { unauthorizedEvent } from "@/api/base";
 import { navigationError } from "@/router";
@@ -18,8 +18,12 @@ export function useAppSession() {
 
   function signOut(): Promise<boolean> {
     return run(async () => {
-      await logout();
-      await router.push("/login");
+      // 先让当前页面处理未保存修改，取消离开时仍保留登录凭证。
+      const navigation =
+        router.currentRoute.value.path === "/login" ? undefined : await router.push("/login");
+      if (!isNavigationFailure(navigation)) {
+        await logout();
+      }
     });
   }
 

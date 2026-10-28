@@ -26,8 +26,21 @@ const router = createRouter({
     },
     {
       path: "/skills",
+      name: "skills",
       component: () => import("@/views/skill/index.vue"),
-      meta: { auth: true, admin: true, title: "官方 Skill" },
+      meta: { auth: true, admin: true, title: "Skill 管理" },
+    },
+    {
+      path: "/skills/new",
+      name: "skill-new",
+      component: () => import("@/views/skill/editor.vue"),
+      meta: { auth: true, admin: true, title: "新增 Skill" },
+    },
+    {
+      path: "/skills/:id/edit",
+      name: "skill-edit",
+      component: () => import("@/views/skill/editor.vue"),
+      meta: { auth: true, admin: true, title: "编辑 Skill" },
     },
     { path: "/:pathMatch(.*)*", redirect: "/" },
   ],
@@ -53,8 +66,10 @@ router.beforeEach(async (to) => {
   }
 });
 
-router.afterEach((to) => {
-  document.title = `${to.meta.title ?? "管理端"} · GenMod`;
+router.afterEach((to, _from, failure) => {
+  if (!failure) {
+    document.title = `${to.meta.title ?? "管理端"} · GenMod`;
+  }
 });
 
 export default router;

@@ -43,11 +43,8 @@ export function useGames() {
     });
   }
 
-  function remove(game: GameRecord): void {
-    if (!window.confirm(`删除游戏“${game.name}”？仍有 Skill 绑定时无法删除。`)) {
-      return;
-    }
-    void state.run(async () => {
+  function remove(game: GameRecord): Promise<boolean> {
+    return state.run(async () => {
       await deleteGame(game.id);
       await load();
       state.notice.value = "游戏已删除";

@@ -1,62 +1,90 @@
 <script setup lang="ts">
-import { computed } from "vue";
+import { Download, FilePenLine, Trash2, History } from "@lucide/vue";
+import { Button } from "@/components/ui/button";
 import type { SkillVersionRecord } from "@/types";
-
-const { versions, busy = false } = defineProps<{
-  versions: SkillVersionRecord[];
-  busy?: boolean;
-}>();
+defineProps<{ versions: SkillVersionRecord[]; busy?: boolean }>();
 const emit = defineEmits<{
-  publish: [version: string];
   remove: [version: SkillVersionRecord];
   download: [version: SkillVersionRecord];
   edit: [version: SkillVersionRecord];
 }>();
-const version = defineModel<string>("version", { default: "" });
-const duplicate = computed(() => versions.some((item) => item.version === version.value));
-
-function publish(): void {
-  if (busy || versions.length >= 5 || duplicate.value || !version.value.trim()) {
-    return;
-  }
-  emit("publish", version.value);
-}
-
 function formatDate(value: string): string {
-  return new Date(value).toLocaleString();
+  return new Date(value).toLocaleString("zh-CN", { hour12: false });
 }
 </script>
-
 <template>
-  <section class="stack">
-    <div class="section-heading">
-      <h3>已发布版本</h3>
-      <span class="badge">{{ versions.length }} / 5</span>
-    </div>
-    <p v-if="versions.length >= 5" class="notice">已达 5 个版本，请先移除旧版本。</p>
-    <p v-if="!versions.length" class="muted">尚无版本，桌面端暂无可确认内容。</p>
-    <article v-for="item in versions" :key="item.id" class="version-row">
+  <section>
+    <div class="flex items-center justify-between border-b p-5">
       <div>
-        <strong class="mono">{{ item.version }}</strong>
-        <small>{{ formatDate(item.uploadedAt) }}</small>
-        <small class="mono" :title="item.contentHash">{{ item.contentHash.slice(0, 16) }}</small>
+        <h2>版本记录</h2>
+        <p class="mt-1 text-xs text-muted-foreground">
+          加载历史版本到编辑区后，使用新版本号发布修改。
+        </p>
       </div>
-      <div class="actions">
-        <button type="button" :disabled="busy" @click="emit('edit', item)">编辑文件</button>
-        <button type="button" :disabled="busy" @click="emit('download', item)">下载</button>
-        <button type="button" class="danger" :disabled="busy" @click="emit('remove', item)">
-          移除
-        </button>
-      </div>
-    </article>
-    <form class="stack" @submit.prevent="publish">
-      <div class="actions">
-        <label>新版本号<input v-model="version" required :disabled="busy" /></label>
-        <button data-publish class="primary" :disabled="versions.length >= 5 || busy || duplicate">
-          发布新版本
-        </button>
-      </div>
-      <p v-if="duplicate" role="alert" class="error">版本号已存在；内容变更请提高版本号。</p>
-    </form>
+      <span class="label-tag font-mono">{{ versions.length }} / 5</span>
+    </div>
+    <p
+      v-if="versions.length >= 5"
+      class="m-4 rounded-md bg-muted p-3 text-xs leading-6 text-muted-foreground"
+    >
+      已达 5 个版本，请先移除旧版本再发布。移除不会删除用户本机已有文件。
+    </p>
+    <div v-if="!versions.length" class="empty">
+      <History :size="32" :stroke-width="1.2" />
+      <h3 class="text-foreground">尚未发布版本</h3>
+      <p>完成文件与清单编辑后，发布首个可供桌面端使用的版本。</p>
+    </div>
+    <div v-else class="table-shell">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>版本号</th>
+            <th>上传时间</th>
+            <th>内容哈希</th>
+            <th>操作</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="(item, index) in versions" :key="item.id">
+            <td>
+              <div class="flex items-center gap-2">
+                <span class="font-mono font-medium">{{ item.version }}</span
+                ><span v-if="index === 0" class="label-tag label-tag-common">最近发布</span>
+              </div>
+            </td>
+            <td class="whitespace-nowrap text-xs text-muted-foreground">
+              {{ formatDate(item.uploadedAt) }}
+            </td>
+            <td class="font-mono text-xs text-muted-foreground" :title="item.contentHash">
+              {{ item.contentHash.slice(0, 12) }}…
+            </td>
+            <td>
+              <div class="flex gap-1">
+                <Button variant="outline" size="sm" :disabled="busy" @click="emit('edit', item)"
+                  ><FilePenLine :size="14" />加载编辑</Button
+                ><Button
+                  variant="ghost"
+                  size="icon-sm"
+                  title="下载 zip"
+                  :aria-label="`下载版本 ${item.version}`"
+                  :disabled="busy"
+                  @click="emit('download', item)"
+                  ><Download :size="15" /></Button
+                ><Button
+                  variant="ghost"
+                  size="icon-sm"
+                  class="text-destructive"
+                  title="移除版本"
+                  :aria-label="`移除版本 ${item.version}`"
+                  :disabled="busy"
+                  @click="emit('remove', item)"
+                  ><Trash2 :size="14"
+                /></Button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
   </section>
 </template>

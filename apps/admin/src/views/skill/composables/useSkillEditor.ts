@@ -1,4 +1,4 @@
-import { ref, shallowRef } from "vue";
+import { computed, ref, shallowRef } from "vue";
 import { unzipSync, zipSync } from "fflate";
 import type { CatalogSkill, SkillMetadataPayload, SkillVersionRecord } from "@/types";
 import {
@@ -9,6 +9,7 @@ import {
 } from "@/api/skill";
 import { useRequestState } from "@/composables/useRequestState";
 import { folderZip, readBytes } from "@/utils/skill-package";
+import { createInitialFiles, type PackageFiles } from "@/utils/skill-files";
 
 export function useSkillEditor(getSkill: () => CatalogSkill, changed: () => void) {
   const skill = getSkill();
@@ -19,13 +20,21 @@ export function useSkillEditor(getSkill: () => CatalogSkill, changed: () => void
     requiredCommandScripts: [...skill.requiredCommandScripts],
     inspectionFile: skill.inspectionFile,
   });
-  const files = shallowRef<Record<string, Uint8Array>>({});
+  const files = shallowRef<PackageFiles>(
+    skill.versions.length ? {} : createInitialFiles(skill.name, skill.description),
+  );
+  const baselineFiles = shallowRef(files.value);
+  const baselineMetadata = shallowRef(JSON.stringify(metadata.value));
+  const filesDirty = computed(() => !sameFiles(files.value, baselineFiles.value));
+  const metadataDirty = computed(() => JSON.stringify(metadata.value) !== baselineMetadata.value);
+  const dirty = computed(() => filesDirty.value || metadataDirty.value);
   const version = shallowRef("");
   const state = useRequestState();
 
   function saveMetadata(): Promise<boolean> {
     return state.run(async () => {
       await updateSkill(getSkill().id, metadata.value);
+      baselineMetadata.value = JSON.stringify(metadata.value);
       state.notice.value = "说明与清单已保存";
       changed();
     });
@@ -65,6 +74,8 @@ export function useSkillEditor(getSkill: () => CatalogSkill, changed: () => void
         form.set(key, JSON.stringify(metadata.value[key]));
       }
       await publishSkillVersion(getSkill().id, form);
+      baselineFiles.value = files.value;
+      baselineMetadata.value = JSON.stringify(metadata.value);
       version.value = "";
       state.notice.value = "新版本已发布";
       changed();
@@ -81,6 +92,8 @@ export function useSkillEditor(getSkill: () => CatalogSkill, changed: () => void
         requiredCommandScripts: [...version.manifest.requiredCommandScripts],
         inspectionFile: version.manifest.inspectionFile,
       };
+      baselineFiles.value = files.value;
+      baselineMetadata.value = JSON.stringify(metadata.value);
       state.notice.value = `已载入 ${version.version}，修改后请使用新版本号发布`;
     });
   }
@@ -98,11 +111,8 @@ export function useSkillEditor(getSkill: () => CatalogSkill, changed: () => void
     });
   }
 
-  function remove(version: SkillVersionRecord): void {
-    if (!window.confirm(`移除版本 ${version.version}？本机已经下载的文件将保留。`)) {
-      return;
-    }
-    void state.run(async () => {
+  function remove(version: SkillVersionRecord): Promise<boolean> {
+    return state.run(async () => {
       await deleteSkillVersion(getSkill().id, version.id);
       state.notice.value = "版本已移除";
       changed();
@@ -114,6 +124,9 @@ export function useSkillEditor(getSkill: () => CatalogSkill, changed: () => void
     metadata,
     files,
     version,
+    dirty,
+    filesDirty,
+    metadataDirty,
     saveMetadata,
     importFiles,
     publish,
@@ -121,6 +134,20 @@ export function useSkillEditor(getSkill: () => CatalogSkill, changed: () => void
     download,
     remove,
   };
+}
+
+function sameFiles(left: PackageFiles, right: PackageFiles): boolean {
+  const paths = Object.keys(left);
+  return (
+    paths.length === Object.keys(right).length &&
+    paths.every((path) => {
+      const a = left[path]!;
+      const b = right[path];
+      return (
+        b && (a === b || (a.length === b.length && a.every((byte, index) => byte === b[index])))
+      );
+    })
+  );
 }
 
 function unpackFiles(bytes: Uint8Array): Record<string, Uint8Array> {
