@@ -730,3 +730,29 @@ git commit -m "feat: 导入受官方游戏约束且安装包不再带 Skill"
 另外在全新临时目录运行 `wrangler d1 execute --local` 与 `wrangler dev --local --port 18787`，通过本地 D1/R2 的 26 项真实 HTTP 检查：注册登录、Cookie/令牌、游戏编辑与绑定、版本发布/上限/冲突、按 fileId 下载、移除版本以及普通用户权限。验证结束已停止本次 Worker。
 
 未进行浏览器人工交互验收、桌面端真实游戏任务验收、远端 Cloudflare 联调、远端迁移或部署。未推送。
+
+## 2026-10-28 Elysia 最佳实践优化
+
+依据用户指定的 [Elysia Best Practice](https://elysiajs.com/essential/best-practice)，仅调整 `apps/server`：
+
+- [x] 将账号、游戏和 Skill 按功能组织到 `src/modules`，分别由 Elysia controller、schema model、业务 service 承担 HTTP、校验及存储逻辑；路由测试随模块归并，删除已替代的根目录路由文件。
+- [x] 鉴权改为命名插件的 `authorize` macro，使用 Elysia Cookie schema 与原生 Cookie 处理；业务服务不接收 Elysia Context 或原始 Request。
+- [x] 请求类型由 schema 的 `.static` 推导，为 JSON 响应增加模型校验；持久化的清单 JSON 也复用相同 schema 解码，删除 DTO 强制转换。
+- [x] 上传使用 `t.File`、数组 JSON 解码和可空路径转换，非法 JSON/非文件请求在存储写入前拒绝，明确返回 400。新增测试先复现原有 500，再验证修复。
+- [x] 使用命名业务错误处理和 `Cloudflare.Env` 绑定声明，移除未使用的 env decorator、入口双重断言及生产代码显式 `any`；包校验按职责拆分，保留 canonical hash 金样本。
+- [x] 验证原有 URL、凭证、角色时机、版本限制、fileId 下载和先 R2 后 D1 的行为；未增加依赖，未修改数据库 schema 或迁移。
+
+功能提交：`6aaf88d`（`refactor: 按 Elysia 最佳实践拆分服务端模块`）。
+
+实际检查命令（仓库根目录）：
+
+```powershell
+bun test apps/server/src
+pnpm --dir apps/admin exec vp fmt 'D:/codetest/gen-mod-admin/apps/server/src' --write
+pnpm --dir apps/admin exec vp lint 'D:/codetest/gen-mod-admin/apps/server/src' --deny-warnings
+node apps/admin/node_modules/typescript/bin/tsc --noEmit -p apps/server/tsconfig.json
+pnpm --filter server exec wrangler deploy --dry-run
+git diff --check
+```
+
+结果：23 项服务端测试通过，0 失败；格式、lint、类型检查及 API Worker 打包成功。在新的临时本地 D1/R2 环境启动 Worker（18788 端口），31 项真实 HTTP 检查通过，包含 multipart 清单解码、非法上传拒绝、Cookie/令牌鉴权、版本冲突/上限和文件下载。验证结束已停止本次 Worker。未运行管理端或桌面端检查，未执行远端部署或推送。
