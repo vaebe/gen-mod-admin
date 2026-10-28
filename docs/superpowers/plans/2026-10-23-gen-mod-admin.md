@@ -193,6 +193,8 @@ git commit -m "feat: 增加游戏与 Skill 共享契约"
 
 ### 任务 3：D1 / R2 与 Cloudflare 接入
 
+- [x] **任务 3 已完成**
+
 **文件：**
 
 - 创建：`apps/server/wrangler.jsonc`
@@ -200,7 +202,7 @@ git commit -m "feat: 增加游戏与 Skill 共享契约"
 - 修改：`apps/server/src/index.ts`（Cloudflare adapter + `compile()`，绑定 D1/R2）
 - 测试：`apps/server/src/schema.test.ts` 或对 schema 的解析测试
 
-- [ ] **步骤 1：写 schema.sql**
+- [x] **步骤 1：写 schema.sql**
 
 ```sql
 CREATE TABLE users (
@@ -257,15 +259,15 @@ CREATE TABLE cookie_sessions (
 
 角色不单独建表：登录时用 `ADMIN_EMAILS` 判定。`skills.game_id` 在 `kind='common'` 时必须为 NULL，在 `kind='game'` 时必须非空——用应用层校验，不要靠无法表达的 CHECK 跨列。
 
-- [ ] **步骤 2：wrangler.jsonc**
+- [x] **步骤 2：wrangler.jsonc**
 
 绑定 `DB`（D1）和 `SKILL_PACKS`（R2）。`compatibility_date` 至少 `2025-06-01`。本地开发可用 `wrangler dev`；保留官方 `bun dev` 仅用于无绑定的 hello 对照，业务接口以 wrangler/miniflare 为准。
 
-- [ ] **步骤 3：把 Elysia 接到 Workers**
+- [x] **步骤 3：把 Elysia 接到 Workers**
 
 按 https://elysiajs.com/integrations/cloudflare-worker.html：`CloudflareAdapter` + `.compile()`，`export default app`。从 env 读取 `DB`、`SKILL_PACKS`、`ADMIN_EMAILS`、`JWT_SECRET`。
 
-- [ ] **步骤 4：Commit**
+- [x] **步骤 4：Commit**
 
 ```powershell
 git add apps/server
