@@ -49,6 +49,8 @@
 
 ### 任务 1：初始化 monorepo 脚手架
 
+- [x] **任务 1 已完成**
+
 **文件：**
 
 - 创建：`pnpm-workspace.yaml`、根 `package.json`
@@ -56,7 +58,7 @@
 - 创建：`apps/admin/`（Vite+ `vue` 模板搬入）
 - 修改：根 `.gitignore`（若脚手架生成了多余 `.git` 则删除）
 
-- [ ] **步骤 1：确认工具**
+- [x] **步骤 1：确认工具**
 
 ```powershell
 bun --version
@@ -66,7 +68,7 @@ node --version
 
 预期：三者都能运行。Node 需满足 Vue/Vite+ 要求（^22.18 或 >=24.12）。缺哪个就先装哪个，不要改用别的脚手架。
 
-- [ ] **步骤 2：创建后端**
+- [x] **步骤 2：创建后端**
 
 在 `D:\codetest\gen-mod-admin`：
 
@@ -78,7 +80,7 @@ bun dev
 
 预期：`http://localhost:3000` 返回 Hello Elysia。停掉进程。
 
-- [ ] **步骤 3：创建前端**
+- [x] **步骤 3：创建前端**
 
 仍在仓库根。不要加 `--directory`。
 
@@ -95,7 +97,7 @@ pnpm exec vp dev
 
 预期：Vite 开发服务器起来。停掉进程。若模板没有 Vue Router，下一步再装，本任务不装业务依赖。
 
-- [ ] **步骤 4：收口 workspace**
+- [x] **步骤 4：收口 workspace**
 
 根 `pnpm-workspace.yaml`：
 
@@ -107,7 +109,7 @@ packages:
 
 根 `package.json` 设 `"private": true`。确认 `apps/server` 和 `apps/admin` 各自没有嵌套 `.git`。
 
-- [ ] **步骤 5：Commit**
+- [x] **步骤 5：Commit**
 
 ```powershell
 git add pnpm-workspace.yaml package.json apps .gitignore
