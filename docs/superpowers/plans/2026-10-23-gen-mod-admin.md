@@ -643,6 +643,8 @@ git commit -m "feat: 按游戏标识加载官方与导入 Skill"
 
 ### 任务 12：导入约束与安装包去掉内置 Skill
 
+- [x] **任务 12 已完成**
+
 **仓库：** `D:\codetest\gen-mod`
 
 **文件：**
@@ -652,7 +654,7 @@ git commit -m "feat: 按游戏标识加载官方与导入 Skill"
 - `builtin_root`：安装包不再有该资源时，`list` 不读内置 registry，只读 official + user
 - 测试：导入未知 `gameId` 失败；导入与官方 `name` 冲突失败；通用导入仍成功
 
-- [ ] **步骤 1：写失败测试并改 `import_skill`**
+- [x] **步骤 1：写失败测试并改 `import_skill`**
 
 在现有 `validate` 之后增加：
 
@@ -660,13 +662,13 @@ git commit -m "feat: 按游戏标识加载官方与导入 Skill"
 - `name` 不得与已确认官方 Skill 名称相同
 - 仍不得覆盖已有导入名
 
-- [ ] **步骤 2：去掉 bundle resources 里的 skills**
+- [x] **步骤 2：去掉 bundle resources 里的 skills**
 
 开发模式 `cfg!(debug_assertions)` 也不再把仓库 `skills/` 当官方来源。开发调试请走管理端发布或本机导入。仓库里的 `skills/` 仍可作为任务 6/7 打 zip 的夹具来源。
 
-- [ ] **步骤 3：跑 `src-tauri` 相关测试与 `builtin_resources_match_registry...`——若该测试依赖打包内置，改为对夹具目录调用 validate，或删掉对 builtin_root 的断言**
+- [x] **步骤 3：跑 `src-tauri` 相关测试与 `builtin_resources_match_registry...`——若该测试依赖打包内置，改为对夹具目录调用 validate，或删掉对 builtin_root 的断言**
 
-- [ ] **步骤 4：gen-mod commit**
+- [x] **步骤 4：gen-mod commit**
 
 ```powershell
 git commit -m "feat: 导入受官方游戏约束且安装包不再带 Skill"
