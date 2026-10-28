@@ -1,0 +1,8 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "gen-mod-api",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-10-28",
+  "d1_databases": [{ "binding": "DB", "database_name": "gen-mod-admin" }],
+  "r2_buckets": [{ "binding": "SKILL_PACKS", "bucket_name": "gen-mod-skill-packs" }]
+}

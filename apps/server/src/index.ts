@@ -1,7 +1,6 @@
-import { Elysia } from "elysia";
+import { env } from 'cloudflare:workers'
+import { createApp } from './app'
+import type { Env } from './env'
 
-const app = new Elysia().get("/", () => "Hello Elysia").listen(3000);
-
-console.log(
-  `🦊 Elysia is running at ${app.server?.hostname}:${app.server?.port}`
-);
+export const app = createApp(env as unknown as Env)
+export default app

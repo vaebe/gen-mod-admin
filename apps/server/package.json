@@ -2,14 +2,18 @@
   "name": "server",
   "version": "1.0.50",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "bun run --watch src/index.ts"
+    "test": "bun test src",
+    "dev": "bun run --watch src/dev.ts",
+    "dev:worker": "wrangler dev",
+    "build:worker": "wrangler deploy --dry-run"
   },
   "dependencies": {
     "elysia": "latest"
   },
   "devDependencies": {
-    "bun-types": "latest"
+    "@cloudflare/workers-types": "^5.20261027.1",
+    "bun-types": "latest",
+    "wrangler": "^4.153.0"
   },
   "module": "src/index.js"
 }
