@@ -120,13 +120,15 @@ git commit -m "chore: 用官方脚手架初始化前后端"
 
 ### 任务 2：共享契约
 
+- [x] **任务 2 已完成**
+
 **文件：**
 
 - 创建：`packages/contracts/package.json`
 - 创建：`packages/contracts/src/index.ts`
 - 测试：`packages/contracts/src/index.test.ts`（若该包用 bun test 或 vp test，与仓库已有测试运行器对齐）
 
-- [ ] **步骤 1：编写失败的类型导出测试**
+- [x] **步骤 1：编写失败的类型导出测试**
 
 `packages/contracts/src/index.ts` 先空着。测试文件断言这些类型可导入（用满足类型的对象字面量赋值）：
 
@@ -176,11 +178,11 @@ const _m: ManifestSnapshot = version.manifest
 void _m
 ```
 
-- [ ] **步骤 2：补上 `packages/contracts/src/index.ts` 使测试通过**
+- [x] **步骤 2：补上 `packages/contracts/src/index.ts` 使测试通过**
 
 字段名与规格一致：`kind: 'common' | 'game'`；通用 Skill 的 `gameId` 为 `null`。
 
-- [ ] **步骤 3：Commit**
+- [x] **步骤 3：Commit**
 
 ```powershell
 git add packages/contracts
