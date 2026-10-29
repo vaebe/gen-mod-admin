@@ -24,8 +24,7 @@ export class QiniuStorage {
     return base64(createHmac("sha1", this.config.secretKey).update(value).digest());
   }
 
-  upload(fileId: string) {
-    const key = `${fileId}.zip`;
+  upload(fileId: string, key: string) {
     const policy = base64(
       JSON.stringify({
         scope: `${this.config.bucket}:${key}`,
@@ -42,16 +41,16 @@ export class QiniuStorage {
     };
   }
 
-  download(fileId: string) {
+  download(key: string) {
     if (!this.config.downloadUrl) {
       throw new ApiError(503, "请配置七牛 QINIU_DOWNLOAD_URL");
     }
-    const url = `${this.config.downloadUrl.replace(/\/$/, "")}/${fileId}.zip?e=${Math.floor(Date.now() / 1000) + 600}`;
+    const url = `${this.config.downloadUrl.replace(/\/$/, "")}/${key}?e=${Math.floor(Date.now() / 1000) + 600}`;
     return `${url}&token=${this.config.accessKey}:${this.sign(url)}`;
   }
 
-  private async request(method: "GET" | "POST", action: string, fileId: string) {
-    const entry = base64(`${this.config.bucket}:${fileId}.zip`);
+  private async request(method: "GET" | "POST", action: string, key: string) {
+    const entry = base64(`${this.config.bucket}:${key}`);
     const url = new URL(`/${action}/${entry}`, this.config.resourceUrl);
     const contentType = "application/x-www-form-urlencoded";
     const signature = this.sign(
@@ -73,11 +72,11 @@ export class QiniuStorage {
     }
   }
 
-  stat(fileId: string) {
-    return this.request("GET", "stat", fileId);
+  stat(key: string) {
+    return this.request("GET", "stat", key);
   }
 
-  delete(fileId: string) {
-    return this.request("POST", "delete", fileId);
+  delete(key: string) {
+    return this.request("POST", "delete", key);
   }
 }

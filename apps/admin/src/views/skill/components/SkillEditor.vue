@@ -196,7 +196,7 @@ const {
       @change="selectFiles($event, true)"
     />
     <Sheet v-model:open="versionsOpen">
-      <SheetContent class="data-[side=right]:w-[780px]" :aria-busy="busy">
+      <SheetContent side="left" class="data-[side=left]:w-[780px]" :aria-busy="busy">
         <SheetHeader
           ><SheetTitle>版本管理</SheetTitle
           ><SheetDescription
@@ -218,7 +218,7 @@ const {
       </SheetContent>
     </Sheet>
     <Sheet v-model:open="settingsOpen">
-      <SheetContent class="data-[side=right]:w-[420px]">
+      <SheetContent side="left" class="data-[side=left]:w-[420px]">
         <SheetHeader
           ><SheetTitle>清单设置</SheetTitle
           ><SheetDescription>{{

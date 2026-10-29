@@ -29,6 +29,8 @@ Copy-Item apps/server/.env.example apps/server/.env
 
 七牛上传凭证限定唯一 Key、仅允许新增、有效期 10 分钟，单个 zip 最大 **10 MB（10,000,000 字节）**。七牛下载链接有效期 10 分钟。压缩包内容不经过 API。
 
+Skill ZIP 的对象 Key 按树形结构组织：游戏 Skill 使用 `skills/<游戏ID>/<SkillID>/<文件ID>.zip`，通用 Skill 使用 `skills/common/<SkillID>/<文件ID>.zip`。同一 Skill 的不同版本各自保存一个 ZIP。七牛按 Key 前缀展示目录，上传时自动形成目录，无须额外创建空文件夹。
+
 七牛下载域名须支持 HTTPS 与浏览器 CORS。请求七牛时不携带业务 API 的 Cookie 或 Authorization。前端内容哈希使用 Web Crypto，因此请使用 HTTPS 或 localhost 打开管理端；公网 HTTP IP 地址不能完成发布。
 
 ## 本地开发

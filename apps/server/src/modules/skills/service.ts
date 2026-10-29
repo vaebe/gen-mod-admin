@@ -35,6 +35,10 @@ interface VersionRow {
 
 const MAX_VERSIONS = 5;
 
+function packageKey(skill: Pick<SkillRecord, "id" | "gameId">, fileId: string): string {
+  return `skills/${skill.gameId ?? "common"}/${skill.id}/${fileId}.zip`;
+}
+
 function skillRecord(row: SkillRow): SkillRecord {
   const fields = {
     id: row.id,
@@ -151,8 +155,9 @@ function manifestFor(skill: SkillRecord, input: PublishSkill): ManifestSnapshot 
 }
 
 export async function requestUpload(env: Env, id: string, userId: string) {
-  await read(env.DB, id);
-  const upload = env.SKILL_PACKS.upload(crypto.randomUUID());
+  const skill = await read(env.DB, id);
+  const fileId = crypto.randomUUID();
+  const upload = env.SKILL_PACKS.upload(fileId, packageKey(skill, fileId));
   env.DB.query("INSERT INTO skill_uploads(id,skill_id,user_id) VALUES (?,?,?)").run(
     upload.fileId,
     id,
@@ -166,7 +171,8 @@ export async function cleanupUpload(env: Env, id: string, fileId: string, userId
     "SELECT id FROM skill_uploads WHERE id=? AND skill_id=? AND user_id=?",
   ).get(fileId, id, userId);
   if (upload && !env.DB.query("SELECT id FROM skill_versions WHERE file_id=?").get(fileId)) {
-    await env.SKILL_PACKS.delete(fileId);
+    const skill = await read(env.DB, id);
+    await env.SKILL_PACKS.delete(packageKey(skill, fileId));
     env.DB.query("DELETE FROM skill_uploads WHERE id=?").run(fileId);
   }
   return { ok: true };
@@ -185,7 +191,7 @@ export async function publish(
   if (!upload) {
     throw new ApiError(400, "上传记录不存在，请重新上传");
   }
-  await env.SKILL_PACKS.stat(input.fileId);
+  await env.SKILL_PACKS.stat(packageKey(skill, input.fileId));
   const description = input.description ?? skill.description;
   const record: SkillVersionRecord = {
     id: crypto.randomUUID(),
@@ -242,13 +248,17 @@ export async function removeVersion(env: Env, skillId: string, versionId: string
   if (!row) {
     throw new ApiError(404, "版本不存在");
   }
-  await env.SKILL_PACKS.delete(row.file_id);
+  const skill = await read(env.DB, skillId);
+  await env.SKILL_PACKS.delete(packageKey(skill, row.file_id));
   env.DB.query("DELETE FROM skill_versions WHERE id=?").run(row.id);
 }
 
 export function download(env: Env, fileId: string): string {
-  if (!env.DB.query("SELECT id FROM skill_versions WHERE file_id=? LIMIT 1").get(fileId)) {
+  const skill = env.DB.query(
+    "SELECT s.id,s.game_id AS gameId FROM skill_versions v JOIN skills s ON s.id=v.skill_id WHERE v.file_id=? LIMIT 1",
+  ).get(fileId) as Pick<SkillRecord, "id" | "gameId"> | null;
+  if (!skill) {
     throw new ApiError(404, "文件不存在");
   }
-  return env.SKILL_PACKS.download(fileId);
+  return env.SKILL_PACKS.download(packageKey(skill, fileId));
 }
