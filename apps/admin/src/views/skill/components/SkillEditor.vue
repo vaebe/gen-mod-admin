@@ -6,13 +6,28 @@ import {
   FolderUp,
   Archive,
   SlidersHorizontal,
-  FileCode2,
   History,
   Check,
   Plus,
+  ChevronDown,
 } from "@lucide/vue";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+} from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+} from "@/components/ui/sheet";
+import { Badge } from "@/components/ui/badge";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import type { CatalogSkill, GameRecord } from "@/types";
 import { useSkillWorkspace } from "../composables/useSkillWorkspace";
 const props = withDefaults(defineProps<{ skill: CatalogSkill; games?: GameRecord[] }>(), {
@@ -43,7 +58,7 @@ const {
   download,
   identity,
   isNew,
-  currentTab,
+  versionsOpen,
   settingsOpen,
   publishOpen,
   confirmation,
@@ -64,49 +79,72 @@ const {
   },
 );
 </script>
+
 <template>
   <section :aria-busy="busy">
-    <header class="page-heading mb-3">
-      <div>
+    <header class="page-heading mb-4">
+      <div class="min-w-0">
         <div class="flex items-center gap-3">
-          <h1 :class="{ 'font-mono text-lg': !isNew }">{{ isNew ? "新增 Skill" : skill.name }}</h1>
-          <span
-            v-if="!isNew"
-            class="label-tag"
-            :class="{ 'label-tag-common': skill.kind === 'common' }"
-            >{{ skill.kind === "common" ? "通用 Skill" : "游戏 Skill" }}</span
+          <h1 class="truncate text-lg">{{ isNew ? "新增 Skill" : skill.name }}</h1>
+          <Badge v-if="!isNew" variant="secondary">{{
+            skill.kind === "common" ? "通用 Skill" : "游戏 Skill"
+          }}</Badge>
+          <span v-if="documentDirty" class="flex items-center gap-1.5 text-xs text-muted-foreground"
+            ><span class="size-1.5 rounded-full bg-primary" />未发布修改</span
           >
         </div>
-        <p class="page-description mt-1 text-xs leading-5">
+        <p
+          v-if="notice"
+          role="status"
+          class="mt-1 flex items-center gap-1.5 text-xs leading-5 text-muted-foreground"
+        >
+          <Check :size="12" />{{ notice }}
+        </p>
+        <p v-else class="mt-1 text-xs leading-5 text-muted-foreground">
           {{
             isNew
               ? "填写基本信息，编写文件，然后发布首个版本。"
               : skill.kind === "game"
-                ? `绑定游戏：${games.find((game) => game.id === skill.gameId)?.name || skill.gameId}`
+                ? "绑定游戏：" +
+                  (games.find((game) => game.id === skill.gameId)?.name || skill.gameId)
                 : "适用于所有游戏的通用能力"
           }}
         </p>
       </div>
       <div class="actions">
-        <Button as-child variant="outline" :disabled="busy"
-          ><RouterLink to="/skills"><ArrowLeft :size="14" />返回列表</RouterLink></Button
-        ><Button v-if="isNew" type="submit" form="skill-identity" :disabled="busy"
-          ><Plus :size="15" />{{ busy ? "正在创建…" : "创建 Skill" }}</Button
-        ><Button
+        <Button as-child variant="ghost" :disabled="busy"
+          ><RouterLink to="/skills"
+            ><ArrowLeft data-icon="inline-start" />返回列表</RouterLink
+          ></Button
+        >
+        <Button variant="outline" :disabled="busy" @click="settingsOpen = true"
+          ><SlidersHorizontal data-icon="inline-start" />清单设置</Button
+        >
+        <Button v-if="!isNew" variant="outline" @click="versionsOpen = true"
+          ><History data-icon="inline-start" />版本管理<Badge variant="secondary">{{
+            skill.versions.length
+          }}</Badge></Button
+        >
+        <Button v-if="isNew" type="submit" form="skill-identity" :disabled="busy"
+          ><Plus data-icon="inline-start" />{{ busy ? "正在创建…" : "创建 Skill" }}</Button
+        >
+        <Button
           v-else
           :disabled="busy || !files['SKILL.md']"
           @click="
             error = '';
             publishOpen = true;
           "
-          ><Upload :size="15" />发布新版本</Button
+          ><Upload data-icon="inline-start" />发布新版本</Button
         >
       </div>
     </header>
-    <p v-if="error && !publishOpen" role="alert" class="error">{{ error }}</p>
-    <p v-if="notice" role="status" class="notice editor-notice">
-      <Check :size="13" class="shrink-0" />{{ notice }}
-    </p>
+    <Alert
+      v-if="error && !publishOpen && !versionsOpen && !settingsOpen"
+      variant="destructive"
+      class="mb-3"
+      ><AlertDescription>{{ error }}</AlertDescription></Alert
+    >
     <SkillIdentityForm
       v-if="isNew"
       v-model="identity"
@@ -115,85 +153,88 @@ const {
       :busy="busy"
       @save="saveNew"
     />
-    <div class="workspace-shell" :class="{ 'settings-closed': !settingsOpen }">
-      <Tabs v-model="currentTab" class="surface min-w-0 gap-0">
-        <div class="flex items-center gap-2 border-b px-3 py-2">
-          <TabsList variant="line"
-            ><TabsTrigger value="files"><FileCode2 :size="14" />内容文件</TabsTrigger
-            ><TabsTrigger value="versions"
-              ><History :size="14" />版本记录
-              <span class="ml-1 font-mono text-[10px]">{{
-                skill.versions.length
-              }}</span></TabsTrigger
-            ></TabsList
-          ><span
-            v-if="documentDirty"
-            class="ml-2 flex items-center gap-1.5 text-[11px] text-amber-800"
-            ><span class="size-1.5 rounded-full bg-amber-600" />未发布修改</span
-          >
-          <div class="ml-auto flex gap-1">
-            <Button
-              variant="ghost"
-              size="icon-sm"
-              title="清单设置"
-              aria-label="切换清单设置"
-              :aria-pressed="settingsOpen"
-              @click="settingsOpen = !settingsOpen"
-              ><SlidersHorizontal :size="15"
-            /></Button>
-          </div>
-        </div>
-        <TabsContent value="files" class="m-0" force-mount :hidden="currentTab !== 'files'">
-          <div class="flex items-center gap-2 border-b px-3 py-2">
-            <Button variant="outline" size="sm" :disabled="busy" @click="zipInput?.click()"
-              ><Archive :size="14" />导入 zip</Button
-            ><Button variant="outline" size="sm" :disabled="busy" @click="folderInput?.click()"
-              ><FolderUp :size="14" />上传文件夹</Button
-            ><span class="ml-auto text-[11px] text-muted-foreground">根目录必须包含 SKILL.md</span>
-          </div>
-          <input
-            ref="zipInput"
-            class="sr-only"
-            tabindex="-1"
-            aria-label="选择 zip 文件"
-            type="file"
-            accept=".zip"
-            :disabled="busy"
-            @change="selectFiles($event, false)"
-          /><input
-            ref="folderInput"
-            class="sr-only"
-            tabindex="-1"
-            aria-label="选择 Skill 文件夹"
-            type="file"
-            webkitdirectory
-            multiple
-            :disabled="busy"
-            @change="selectFiles($event, true)"
-          />
-          <SkillFiles v-model="files" :busy="busy" />
-        </TabsContent>
-        <TabsContent value="versions" class="m-0"
-          ><SkillVersions
+    <div class="surface">
+      <SkillFiles v-model="files" :busy="busy">
+        <template #toolbar>
+          <DropdownMenu>
+            <DropdownMenuTrigger as-child
+              ><Button variant="ghost" size="sm" :disabled="busy"
+                ><FolderUp data-icon="inline-start" />导入文件<ChevronDown
+                  data-icon="inline-end" /></Button
+            ></DropdownMenuTrigger>
+            <DropdownMenuContent align="start"
+              ><DropdownMenuGroup>
+                <DropdownMenuItem @select="zipInput?.click()"><Archive />导入 zip</DropdownMenuItem>
+                <DropdownMenuItem @select="folderInput?.click()"
+                  ><FolderUp />上传文件夹</DropdownMenuItem
+                >
+              </DropdownMenuGroup></DropdownMenuContent
+            >
+          </DropdownMenu>
+        </template>
+      </SkillFiles>
+    </div>
+    <input
+      ref="zipInput"
+      class="sr-only"
+      tabindex="-1"
+      aria-label="选择 zip 文件"
+      type="file"
+      accept=".zip"
+      :disabled="busy"
+      @change="selectFiles($event, false)"
+    />
+    <input
+      ref="folderInput"
+      class="sr-only"
+      tabindex="-1"
+      aria-label="选择 Skill 文件夹"
+      type="file"
+      webkitdirectory
+      multiple
+      :disabled="busy"
+      @change="selectFiles($event, true)"
+    />
+    <Sheet v-model:open="versionsOpen">
+      <SheetContent class="data-[side=right]:w-[780px]" :aria-busy="busy">
+        <SheetHeader
+          ><SheetTitle>版本管理</SheetTitle
+          ><SheetDescription
+            >管理已发布版本。加载历史内容后，使用新版本号发布修改。</SheetDescription
+          ></SheetHeader
+        >
+        <Alert v-if="error" variant="destructive" class="mx-5 w-auto"
+          ><AlertDescription>{{ error }}</AlertDescription></Alert
+        >
+        <div class="min-h-0 flex-1 overflow-auto">
+          <SkillVersions
             :versions="skill.versions"
             :busy="busy"
             @edit="loadVersion"
             @download="download"
             @remove="removeVersion"
-        /></TabsContent>
-      </Tabs>
-      <aside v-if="settingsOpen" class="surface self-start">
-        <div class="flex items-center justify-between border-b px-5 py-4">
-          <h2 class="text-sm">清单设置</h2>
-          <span class="text-[10px] text-muted-foreground">{{
-            isNew ? "随创建保存" : "独立于文件"
-          }}</span>
+          />
         </div>
-        <fieldset :disabled="busy" class="p-5">
+      </SheetContent>
+    </Sheet>
+    <Sheet v-model:open="settingsOpen">
+      <SheetContent class="data-[side=right]:w-[420px]">
+        <SheetHeader
+          ><SheetTitle>清单设置</SheetTitle
+          ><SheetDescription>{{
+            isNew
+              ? "创建 Skill 时保存以下清单字段。"
+              : "说明与清单可独立保存，文件内容通过发布新版本保存。"
+          }}</SheetDescription></SheetHeader
+        >
+        <Alert v-if="error" variant="destructive" class="mx-5 w-auto"
+          ><AlertDescription>{{ error }}</AlertDescription></Alert
+        >
+        <fieldset :disabled="busy" class="min-h-0 flex-1 overflow-auto px-5 pb-5">
           <SkillMetadataForm v-model="metadata" :create-mode="isNew" @save="saveMetadata" />
         </fieldset>
-      </aside>
-    </div>
+      </SheetContent>
+    </Sheet>
     <PublishVersionDialog
       v-model:open="publishOpen"
       v-model:version="version"
@@ -205,23 +246,3 @@ const {
     <ConfirmDialog :request="confirmation.request.value" @answer="confirmation.answer" />
   </section>
 </template>
-<style scoped>
-.editor-notice {
-  margin-bottom: 12px;
-  padding: 6px 10px;
-  border-color: var(--border);
-  background: var(--muted);
-  color: var(--muted-foreground);
-  font-size: 12px;
-  line-height: 20px;
-}
-.workspace-shell {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 280px;
-  gap: 20px;
-  align-items: start;
-}
-.workspace-shell.settings-closed {
-  grid-template-columns: minmax(0, 1fr);
-}
-</style>

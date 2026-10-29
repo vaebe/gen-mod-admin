@@ -1,4 +1,12 @@
 <script setup lang="ts">
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+} from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import type { GameRecord } from "@/types";
@@ -28,22 +36,38 @@ const emit = defineEmits<{ save: [] }>();
     >
     <div class="grid grid-cols-2 gap-3">
       <label class="field content-start"
-        >类型<select v-model="identity.kind" name="kind" class="form-select" :disabled="busy">
-          <option value="common">通用 Skill</option>
-          <option value="game">游戏 Skill</option>
-        </select></label
+        >类型<Select
+          :model-value="identity.kind"
+          name="kind"
+          :disabled="busy"
+          @update:model-value="identity.kind = $event === 'game' ? 'game' : 'common'"
+        >
+          <SelectTrigger aria-label="Skill 类型" class="w-full"><SelectValue /></SelectTrigger>
+          <SelectContent
+            ><SelectGroup
+              ><SelectItem value="common">通用 Skill</SelectItem
+              ><SelectItem value="game">游戏 Skill</SelectItem></SelectGroup
+            ></SelectContent
+          >
+        </Select></label
       ><label v-if="identity.kind === 'game'" class="field content-start"
-        >绑定游戏<select
-          v-model="identity.gameId"
+        >绑定游戏<Select
+          :model-value="identity.gameId"
           name="gameId"
-          class="form-select"
           :disabled="busy"
           required
+          @update:model-value="identity.gameId = String($event ?? '')"
         >
-          <option value="">选择已有游戏</option>
-          <option v-for="game in games" :key="game.id" :value="game.id">
-            {{ game.name }}
-          </option></select
+          <SelectTrigger aria-label="绑定游戏" class="w-full"
+            ><SelectValue placeholder="选择已有游戏"
+          /></SelectTrigger>
+          <SelectContent
+            ><SelectGroup
+              ><SelectItem v-for="game in games" :key="game.id" :value="game.id">{{
+                game.name
+              }}</SelectItem></SelectGroup
+            ></SelectContent
+          > </Select
         ><span v-if="!games.length" class="field-hint">请先在游戏管理中创建游戏。</span></label
       >
     </div>

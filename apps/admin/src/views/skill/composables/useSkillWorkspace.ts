@@ -43,8 +43,8 @@ export function useSkillWorkspace(
     gameId: getSkill().gameId || "",
   });
   const isNew = computed(() => !getSkill().id);
-  const currentTab = shallowRef("files");
-  const settingsOpen = shallowRef(true);
+  const versionsOpen = shallowRef(false);
+  const settingsOpen = shallowRef(false);
   const publishOpen = shallowRef(false);
   const confirmation = useConfirmation();
   let templateBytes = files.value["SKILL.md"];
@@ -57,6 +57,15 @@ export function useSkillWorkspace(
   );
   watch(documentDirty, events.dirty, { immediate: true });
   watch(busy, events.busy, { immediate: true });
+  watch(notice, (value, _previous, onCleanup) => {
+    if (!value) {
+      return;
+    }
+    const timer = setTimeout(() => {
+      notice.value = "";
+    }, 6000);
+    onCleanup(() => clearTimeout(timer));
+  });
   watch(
     () => [identity.value.name, metadata.value.description],
     () => {
@@ -110,7 +119,7 @@ export function useSkillWorkspace(
       return;
     }
     if (await importFiles(selected, folder)) {
-      currentTab.value = "files";
+      versionsOpen.value = false;
     }
   }
 
@@ -126,7 +135,7 @@ export function useSkillWorkspace(
       return;
     }
     if (await edit(item)) {
-      currentTab.value = "files";
+      versionsOpen.value = false;
     }
   }
 
@@ -159,7 +168,7 @@ export function useSkillWorkspace(
     ...editor,
     identity,
     isNew,
-    currentTab,
+    versionsOpen,
     settingsOpen,
     publishOpen,
     confirmation,

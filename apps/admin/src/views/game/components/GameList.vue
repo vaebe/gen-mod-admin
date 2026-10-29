@@ -1,4 +1,12 @@
 <script setup lang="ts">
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell,
+} from "@/components/ui/table";
 import { Gamepad2, Pencil, Trash2 } from "@lucide/vue";
 import { Button } from "@/components/ui/button";
 import type { GameRecord } from "@/types";
@@ -21,23 +29,23 @@ const emit = defineEmits<{ edit: [game: GameRecord]; remove: [game: GameRecord] 
       <p>创建游戏后即可为它绑定官方 Skill。通用 Skill 无需绑定游戏。</p>
     </div>
     <div v-else class="table-shell">
-      <table class="data-table">
-        <thead>
-          <tr>
-            <th>游戏名称</th>
-            <th>游戏标识</th>
-            <th>说明</th>
-            <th class="text-right">操作</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="game in games" :key="game.id">
-            <td class="min-w-40 font-medium">{{ game.name }}</td>
-            <td class="font-mono text-xs text-muted-foreground">{{ game.id }}</td>
-            <td class="min-w-48 max-w-lg text-xs text-muted-foreground">
+      <Table class="data-table">
+        <TableHeader>
+          <TableRow>
+            <TableHead>游戏名称</TableHead>
+            <TableHead>游戏标识</TableHead>
+            <TableHead>说明</TableHead>
+            <TableHead class="text-right">操作</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          <TableRow v-for="game in games" :key="game.id">
+            <TableCell class="min-w-40 font-medium">{{ game.name }}</TableCell>
+            <TableCell class="font-mono text-xs text-muted-foreground">{{ game.id }}</TableCell>
+            <TableCell class="min-w-48 max-w-lg text-xs text-muted-foreground">
               {{ game.description || "—" }}
-            </td>
-            <td>
+            </TableCell>
+            <TableCell>
               <div class="flex justify-end gap-1">
                 <Button variant="ghost" size="sm" :disabled="busy" @click="emit('edit', game)"
                   ><Pencil :size="14" />编辑</Button
@@ -51,10 +59,10 @@ const emit = defineEmits<{ edit: [game: GameRecord]; remove: [game: GameRecord] 
                   ><Trash2 :size="15"
                 /></Button>
               </div>
-            </td>
-          </tr>
-        </tbody>
-      </table>
+            </TableCell>
+          </TableRow>
+        </TableBody>
+      </Table>
     </div>
   </section>
 </template>

@@ -1,7 +1,8 @@
 <script setup lang="ts">
+import { Skeleton } from "@/components/ui/skeleton";
 import { defineAsyncComponent, onBeforeUnmount, onMounted, shallowRef, watch } from "vue";
 import { onBeforeRouteLeave, onBeforeRouteUpdate, useRoute, useRouter } from "vue-router";
-import { ChevronRight, ArrowLeft } from "@lucide/vue";
+import { ArrowLeft } from "@lucide/vue";
 import { Button } from "@/components/ui/button";
 import { getSkills } from "@/api/skill";
 import { getGames } from "@/api/game";
@@ -91,11 +92,6 @@ async function created(next: CatalogSkill): Promise<void> {
 
 <template>
   <div>
-    <nav class="page-breadcrumb mb-2" aria-label="面包屑">
-      <RouterLink to="/skills">Skill 管理</RouterLink><ChevronRight :size="12" /><span>{{
-        skill?.id ? skill.name : "新增 Skill"
-      }}</span>
-    </nav>
     <div v-if="error" role="alert" class="error">
       <span>{{ error }}</span
       ><Button variant="outline" size="sm" :disabled="busy" @click="load">重新加载</Button
@@ -104,8 +100,8 @@ async function created(next: CatalogSkill): Promise<void> {
       >
     </div>
     <div v-if="busy && !skill" role="status" class="grid gap-5">
-      <div class="h-12 w-64 animate-pulse rounded bg-muted" />
-      <div class="h-[560px] animate-pulse rounded-lg bg-muted" />
+      <Skeleton class="h-12 w-64 rounded bg-muted" />
+      <Skeleton class="h-[560px] rounded-lg bg-muted" />
       <span class="sr-only">正在加载 Skill…</span>
     </div>
     <SkillEditor

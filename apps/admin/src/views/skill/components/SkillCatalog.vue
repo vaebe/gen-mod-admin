@@ -1,6 +1,23 @@
 <script setup lang="ts">
+import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell,
+} from "@/components/ui/table";
 import { Search, Boxes, ArrowUpRight, Gamepad2, Globe } from "@lucide/vue";
 import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+} from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import type { CatalogSkill, GameRecord } from "@/types";
 import { useSkillCatalog } from "../composables/useSkillCatalog";
@@ -26,17 +43,24 @@ function gameName(skill: CatalogSkill): string {
           placeholder="搜索名称或说明…"
         />
       </div>
-      <select v-model="game" class="form-select w-auto min-w-40" aria-label="按游戏筛选">
-        <option value="all">全部游戏与通用</option>
-        <option value="common">通用 Skill</option>
-        <option v-for="item in games" :key="item.id" :value="`game:${item.id}`">
-          {{ item.name }}
-        </option>
-      </select>
+      <Select :model-value="game" @update:model-value="game = String($event)">
+        <SelectTrigger class="min-w-44" aria-label="按游戏筛选"
+          ><SelectValue placeholder="全部游戏与通用"
+        /></SelectTrigger>
+        <SelectContent
+          ><SelectGroup>
+            <SelectItem value="all">全部游戏与通用</SelectItem>
+            <SelectItem value="common">通用 Skill</SelectItem>
+            <SelectItem v-for="item in games" :key="item.id" :value="'game:' + item.id">{{
+              item.name
+            }}</SelectItem>
+          </SelectGroup></SelectContent
+        >
+      </Select>
       <span class="ml-auto text-xs text-muted-foreground">{{ filtered.length }} 个 Skill</span>
     </div>
-    <div v-if="busy && !skills.length" role="status" class="space-y-4 p-6">
-      <div v-for="n in 4" :key="n" class="h-12 animate-pulse rounded bg-muted" />
+    <div v-if="busy && !skills.length" role="status" class="flex flex-col gap-4 p-6">
+      <Skeleton v-for="n in 4" :key="n" class="h-12 rounded bg-muted" />
       <span class="sr-only">正在加载 Skill…</span>
     </div>
     <div v-else-if="!filtered.length" class="empty">
@@ -64,19 +88,19 @@ function gameName(skill: CatalogSkill): string {
       >
     </div>
     <div v-else class="table-shell">
-      <table class="data-table">
-        <thead>
-          <tr>
-            <th>Skill 名称 / 说明</th>
-            <th>类型</th>
-            <th>适用游戏</th>
-            <th>版本</th>
-            <th><span class="sr-only">操作</span></th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="skill in filtered" :key="skill.id">
-            <td class="min-w-52">
+      <Table class="data-table">
+        <TableHeader>
+          <TableRow>
+            <TableHead>Skill 名称 / 说明</TableHead>
+            <TableHead>类型</TableHead>
+            <TableHead>适用游戏</TableHead>
+            <TableHead>版本</TableHead>
+            <TableHead><span class="sr-only">操作</span></TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          <TableRow v-for="skill in filtered" :key="skill.id">
+            <TableCell class="min-w-52">
               <RouterLink
                 :to="`/skills/${encodeURIComponent(skill.id)}/edit`"
                 class="font-mono text-[13px] font-semibold hover:text-primary"
@@ -88,8 +112,8 @@ function gameName(skill: CatalogSkill): string {
               >
                 {{ skill.description }}
               </p>
-            </td>
-            <td>
+            </TableCell>
+            <TableCell>
               <span
                 class="label-tag whitespace-nowrap"
                 :class="{ 'label-tag-common': skill.kind === 'common' }"
@@ -97,23 +121,23 @@ function gameName(skill: CatalogSkill): string {
                   skill.kind === "common" ? "通用" : "游戏"
                 }}</span
               >
-            </td>
-            <td class="whitespace-nowrap text-xs">{{ gameName(skill) }}</td>
-            <td class="whitespace-nowrap">
+            </TableCell>
+            <TableCell class="whitespace-nowrap text-xs">{{ gameName(skill) }}</TableCell>
+            <TableCell class="whitespace-nowrap">
               <span class="font-mono text-xs">{{ skill.versions.length }} / 5</span>
               <p class="mt-1 text-xs text-muted-foreground">
                 {{ skill.versions[0]?.version || "未发布" }}
               </p>
-            </td>
-            <td>
+            </TableCell>
+            <TableCell>
               <Button as-child variant="ghost" size="sm"
                 ><RouterLink :to="`/skills/${encodeURIComponent(skill.id)}/edit`"
                   >编辑<ArrowUpRight :size="14" /></RouterLink
               ></Button>
-            </td>
-          </tr>
-        </tbody>
-      </table>
+            </TableCell>
+          </TableRow>
+        </TableBody>
+      </Table>
     </div>
     <footer class="border-t px-5 py-3 text-xs text-muted-foreground">
       每个 Skill 最多保留 5 个版本，已发布的内容使用新版本号更新。

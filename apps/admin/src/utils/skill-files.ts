@@ -27,30 +27,90 @@ export function fileText(bytes: Uint8Array): string | null {
   }
 }
 
-function availablePath(files: PackageFiles, input: string): string {
+export function parentPath(path: string): string {
+  return path.split("/").slice(0, -1).join("/");
+}
+
+export function isFolder(files: PackageFiles, path: string): boolean {
+  return Object.keys(files).some((entry) => entry.startsWith(`${path}/`));
+}
+
+function validateEntryPath(input: string): string {
   const path = input.trim();
   if (
     !path ||
     /[:\\]/.test(path) ||
-    Array.from(path).some((character) => character.charCodeAt(0) < 32) ||
-    path.split("/").some((part) => !part || part === "." || part === "..")
+    path
+      .split("/")
+      .some(
+        (part) =>
+          !part ||
+          part === "." ||
+          part === ".." ||
+          /[ .]$|[<>"|?*]/.test(part) ||
+          Array.from(part).some(
+            (character) => character.charCodeAt(0) < 32 || character.charCodeAt(0) === 127,
+          ) ||
+          /^(CON|PRN|AUX|NUL|COM[0-9]|LPT[0-9])(?:\.|$)/i.test(part),
+      )
   ) {
-    throw new Error("请输入包内相对路径，例如 scripts/build.ps1；不能包含空目录或 ..");
-  }
-  const lower = path.toLowerCase();
-  if (
-    Object.keys(files).some((existing) => {
-      const key = existing.toLowerCase();
-      return key === lower || key.startsWith(`${lower}/`) || lower.startsWith(`${key}/`);
-    })
-  ) {
-    throw new Error("路径已被文件或目录占用，不能覆盖已有内容");
+    throw new Error("名称包含无效字符，请使用有效的 Windows 文件名");
   }
   return path;
 }
 
+export function createEntry(files: PackageFiles, input: string, folder: boolean): PackageFiles {
+  const path = validateEntryPath(input);
+  const lower = path.toLowerCase();
+  if (
+    Object.keys(files).some((entry) => {
+      const key = entry.replace(/\/$/, "").toLowerCase();
+      return (
+        key === lower ||
+        key.startsWith(`${lower}/`) ||
+        (!entry.endsWith("/") && lower.startsWith(`${key}/`))
+      );
+    })
+  ) {
+    throw new Error("同名文件或文件夹已存在，请使用其他名称");
+  }
+  return { ...files, [folder ? `${path}/` : path]: new Uint8Array() };
+}
+
+export function relocateEntry(files: PackageFiles, source: string, input: string): PackageFiles {
+  const target = validateEntryPath(input);
+  if (source === target) {
+    return files;
+  }
+  const folder = isFolder(files, source);
+  if (!folder && !Object.prototype.hasOwnProperty.call(files, source)) {
+    throw new Error("文件或文件夹已不存在");
+  }
+  if (folder && target.toLowerCase().startsWith(`${source.toLowerCase()}/`)) {
+    throw new Error("不能将文件夹移动到它自己的子目录中");
+  }
+  const moving = Object.keys(files).filter(
+    (path) => path === source || path.startsWith(`${source}/`),
+  );
+  const remaining = Object.fromEntries(
+    Object.entries(files).filter(([path]) => !moving.includes(path)),
+  );
+  // 先校验整个目标，全部成立后才替换，避免目录操作只移动一半。
+  createEntry(remaining, target, folder);
+  const next = { ...remaining };
+  for (const path of moving) {
+    next[target + path.slice(source.length)] = files[path]!;
+  }
+  const parent = parentPath(source);
+  if (parent && !isFolder(next, parent)) {
+    // 保留空父目录时也校验路径，防止移动后的文件占用它或它的祖先目录。
+    return createEntry(next, parent, true);
+  }
+  return next;
+}
+
 export function addFile(files: PackageFiles, input: string): PackageFiles {
-  return { ...files, [availablePath(files, input)]: new Uint8Array() };
+  return createEntry(files, input, false);
 }
 
 export function renameFile(files: PackageFiles, source: string, input: string): PackageFiles {
@@ -58,23 +118,25 @@ export function renameFile(files: PackageFiles, source: string, input: string): 
   if (!bytes) {
     throw new Error("文件不存在");
   }
-  const next = { ...files };
-  delete next[source];
-  next[availablePath(next, input)] = bytes;
-  return next;
+  return relocateEntry(files, source, input);
 }
 
 export function buildFileTree(paths: string[]): FileNode[] {
   const root: FileNode[] = [];
   for (const path of paths) {
     let level = root;
-    const parts = path.split("/");
+    const directory = path.endsWith("/");
+    const parts = path.replace(/\/$/, "").split("/");
     for (let index = 0; index < parts.length; index++) {
       const part = parts[index]!;
       const current = parts.slice(0, index + 1).join("/");
       let node = level.find((item) => item.path === current);
       if (!node) {
-        node = { name: part, path: current, ...(index < parts.length - 1 ? { children: [] } : {}) };
+        node = {
+          name: part,
+          path: current,
+          ...(index < parts.length - 1 || directory ? { children: [] } : {}),
+        };
         level.push(node);
       }
       if (node.children) {

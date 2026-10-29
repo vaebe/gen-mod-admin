@@ -1,6 +1,15 @@
 <script setup lang="ts">
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell,
+} from "@/components/ui/table";
 import { Download, FilePenLine, Trash2, History } from "@lucide/vue";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import type { SkillVersionRecord } from "@/types";
 defineProps<{ versions: SkillVersionRecord[]; busy?: boolean }>();
 const emit = defineEmits<{
@@ -14,14 +23,9 @@ function formatDate(value: string): string {
 </script>
 <template>
   <section>
-    <div class="flex items-center justify-between border-b p-5">
-      <div>
-        <h2>版本记录</h2>
-        <p class="mt-1 text-xs text-muted-foreground">
-          加载历史版本到编辑区后，使用新版本号发布修改。
-        </p>
-      </div>
-      <span class="label-tag font-mono">{{ versions.length }} / 5</span>
+    <div class="flex items-center justify-between px-5 pb-4">
+      <span class="text-xs text-muted-foreground">已发布版本</span
+      ><Badge variant="secondary">{{ versions.length }} / 5</Badge>
     </div>
     <p
       v-if="versions.length >= 5"
@@ -35,30 +39,30 @@ function formatDate(value: string): string {
       <p>完成文件与清单编辑后，发布首个可供桌面端使用的版本。</p>
     </div>
     <div v-else class="table-shell">
-      <table class="data-table">
-        <thead>
-          <tr>
-            <th>版本号</th>
-            <th>上传时间</th>
-            <th>内容哈希</th>
-            <th>操作</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="(item, index) in versions" :key="item.id">
-            <td>
+      <Table class="data-table">
+        <TableHeader>
+          <TableRow>
+            <TableHead>版本号</TableHead>
+            <TableHead>上传时间</TableHead>
+            <TableHead>内容哈希</TableHead>
+            <TableHead>操作</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          <TableRow v-for="(item, index) in versions" :key="item.id">
+            <TableCell>
               <div class="flex items-center gap-2">
                 <span class="font-mono font-medium">{{ item.version }}</span
                 ><span v-if="index === 0" class="label-tag label-tag-common">最近发布</span>
               </div>
-            </td>
-            <td class="whitespace-nowrap text-xs text-muted-foreground">
+            </TableCell>
+            <TableCell class="whitespace-nowrap text-xs text-muted-foreground">
               {{ formatDate(item.uploadedAt) }}
-            </td>
-            <td class="font-mono text-xs text-muted-foreground" :title="item.contentHash">
+            </TableCell>
+            <TableCell class="font-mono text-xs text-muted-foreground" :title="item.contentHash">
               {{ item.contentHash.slice(0, 12) }}…
-            </td>
-            <td>
+            </TableCell>
+            <TableCell>
               <div class="flex gap-1">
                 <Button variant="outline" size="sm" :disabled="busy" @click="emit('edit', item)"
                   ><FilePenLine :size="14" />加载编辑</Button
@@ -81,10 +85,10 @@ function formatDate(value: string): string {
                   ><Trash2 :size="14"
                 /></Button>
               </div>
-            </td>
-          </tr>
-        </tbody>
-      </table>
+            </TableCell>
+          </TableRow>
+        </TableBody>
+      </Table>
     </div>
   </section>
 </template>

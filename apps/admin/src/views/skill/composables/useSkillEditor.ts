@@ -151,7 +151,5 @@ function sameFiles(left: PackageFiles, right: PackageFiles): boolean {
 }
 
 function unpackFiles(bytes: Uint8Array): Record<string, Uint8Array> {
-  return Object.fromEntries(
-    Object.entries(unzipSync(bytes)).filter(([path]) => !path.endsWith("/")),
-  );
+  return unzipSync(bytes);
 }

@@ -47,6 +47,14 @@ function button(text: string) {
     )!,
   );
 }
+async function chooseOption(label: string, text: string): Promise<void> {
+  const body = new DOMWrapper(document.body);
+  await body.get(`[role="combobox"][aria-label="${label}"]`).trigger("keydown", { key: "Enter" });
+  await flushUI();
+  const option = body.findAll('[role="option"]').find((item) => item.text().trim() === text)!;
+  await option.trigger("keydown", { key: "Enter" });
+  await flushUI();
+}
 const linkStub = { template: "<a><slot /></a>" };
 const commonSkill: CatalogSkill = {
   id: "s",
@@ -89,7 +97,7 @@ it("login sends Cookie credentials and emits the logged-in user", async () => {
   await page.get("form").trigger("submit");
   await flushUI();
   expect(fetch).toHaveBeenCalledWith(
-    "/api/auth/login",
+    "http://127.0.0.1:8787/auth/login",
     expect.objectContaining({
       credentials: "include",
       method: "POST",
@@ -105,6 +113,7 @@ it("allows common Skill without games and requires selection for game Skill", as
   const page = mount(SkillEditor, {
     props: { skill: { ...commonSkill, id: "", name: "", description: "" }, games: [] },
     global: { stubs: { RouterLink: linkStub } },
+    attachTo: document.body,
   });
   await flushUI();
   await page.get("[name=name]").setValue("workflow");
@@ -115,7 +124,7 @@ it("allows common Skill without games and requires selection for game Skill", as
   await page.get("#skill-identity").trigger("submit");
   await flushUI();
   expect(page.emitted("created")?.[0]?.[0]).toMatchObject({ kind: "common", gameId: null });
-  await page.get("[name=kind]").setValue("game");
+  await chooseOption("Skill 类型", "游戏 Skill");
   await page.get("#skill-identity").trigger("submit");
   await flushUI();
   expect(fetch).toHaveBeenCalledTimes(1);
@@ -158,7 +167,7 @@ it("edits game names without changing identifiers and keeps list on rejected del
   await dialog().get("form").trigger("submit");
   await flushUI();
   expect(fetch).toHaveBeenCalledWith(
-    "/api/games/duckov",
+    "http://127.0.0.1:8787/games/duckov",
     expect.objectContaining({
       method: "PATCH",
       body: JSON.stringify({ name: "新名称", description: "desc" }),
@@ -190,7 +199,7 @@ it("game form submits immutable identifier and refreshes list", async () => {
   await dialog().get("form").trigger("submit");
   await flushUI();
   expect(fetch).toHaveBeenCalledWith(
-    "/api/games",
+    "http://127.0.0.1:8787/games",
     expect.objectContaining({ method: "POST", body: JSON.stringify(saved) }),
   );
   expect(page.text()).toContain("Duckov");
@@ -239,7 +248,7 @@ it("editing arbitrary text retains binary files and tree selection changes edito
   };
   const page = mount(SkillFiles, { props: { modelValue: original } });
   await flushUI();
-  await page.get('[aria-label="scripts/run.custom"]').trigger("click");
+  await page.get('[data-tree-path="scripts/run.custom"]').trigger("click");
   await flushUI();
   await page.get(".test-code-editor").setValue("new code");
   const changed = page.emitted("update:modelValue")![0]![0] as typeof original;
@@ -263,7 +272,11 @@ it("publishes edited description and files in one request and clears version on 
     attachTo: document.body,
   });
   await flushUI();
-  await page.get("textarea:not(.test-code-editor)").setValue("edited");
+  await button("清单设置").trigger("click");
+  await flushUI();
+  await dialog().get("textarea").setValue("edited");
+  await dialog().get('[data-slot="sheet-close"]').trigger("click");
+  await flushUI();
   await page
     .get(".test-code-editor")
     .setValue("---\nname: workflow\ndescription: edited\n---\nbody");
@@ -272,7 +285,9 @@ it("publishes edited description and files in one request and clears version on 
   await dialog().get("input").setValue("2");
   await dialog().get("form").trigger("submit");
   await flushUI();
-  const request = fetch.mock.calls.find(([url]) => url === "/api/skills/s/versions");
+  const request = fetch.mock.calls.find(
+    ([url]) => url === "http://127.0.0.1:8787/skills/s/versions",
+  );
   expect((request?.[1]?.body as FormData)?.get("description")).toBe("edited");
   expect(page.text()).toContain("新版本已发布");
   expect(document.querySelector("[role=dialog]")).toBeNull();
@@ -298,8 +313,15 @@ it("deletes selected file only after confirmation without changing remaining byt
     attachTo: document.body,
   });
   await flushUI();
-  await page.get('[aria-label="obsolete.txt"]').trigger("click");
-  await page.get('[aria-label="删除文件"]').trigger("click");
+  await page.get('[data-tree-path="obsolete.txt"]').trigger("contextmenu", {
+    button: 2,
+    clientX: 10,
+    clientY: 10,
+  });
+  await flushUI();
+  await new DOMWrapper(document.body)
+    .get('[role="menuitem"][data-variant="destructive"]')
+    .trigger("click");
   await flushUI();
   expect(page.emitted("update:modelValue")).toBeUndefined();
   await button("删除文件").trigger("click");
@@ -322,7 +344,7 @@ it("Markdown preview removes scripts, event handlers and external media", () => 
 it("new route keeps edited files after creation and confirms before leaving", async () => {
   const created = { ...commonSkill, id: "created-id", name: "new-skill" };
   const fetch = vi.fn().mockImplementation(async (url: string, options?: RequestInit) => {
-    if (url === "/api/games") {
+    if (url === "http://127.0.0.1:8787/games") {
       return new Response("[]");
     }
     if (options?.method === "POST") {
@@ -378,8 +400,9 @@ it("list filters on a real game named common without confusing common Skills", a
       ],
     },
     global: { stubs: { RouterLink: linkStub } },
+    attachTo: document.body,
   });
-  await page.get("select").setValue("game:common");
+  await chooseOption("按游戏筛选", "Common Game");
   expect(page.text()).toContain("bound");
   expect(page.text()).not.toContain("workflow");
   await page.get('[aria-label="搜索 Skill"]').setValue("missing");

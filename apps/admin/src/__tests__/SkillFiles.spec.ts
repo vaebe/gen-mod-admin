@@ -5,6 +5,7 @@ import {
   buildFileTree,
   createInitialFiles,
   fileText,
+  relocateEntry,
   renameFile,
 } from "@/utils/skill-files";
 import { filterSkills } from "@/views/skill/composables/useSkillCatalog";
@@ -62,6 +63,32 @@ describe("Skill 文件工作区", () => {
     const files = { "a.txt": strToU8("a"), "b.txt": strToU8("b") };
     expect(() => renameFile(files, "a.txt", "b.txt")).toThrow();
     expect(Object.keys(files)).toEqual(["a.txt", "b.txt"]);
+  });
+
+  it.each([
+    ["assets/assets", "assets"],
+    ["assets/ASSETS", "ASSETS"],
+    ["assets/nested/assets", "assets"],
+  ])("拒绝将 %s 移动为与保留目录冲突的文件 %s", (source, target) => {
+    const content = new Uint8Array([0, 255]);
+    const files = { [source]: content };
+    expect(() => relocateEntry(files, source, target)).toThrow("同名文件或文件夹已存在");
+    expect(Object.keys(files)).toEqual([source]);
+    expect(files[source]).toBe(content);
+  });
+
+  it("移动最后一个文件时保留空父目录与原始字节", () => {
+    const content = new Uint8Array([0, 255]);
+    const files = { "assets/icon.bin": content };
+    const next = relocateEntry(files, "assets/icon.bin", "icon.bin");
+    expect(Object.keys(next).sort()).toEqual(["assets/", "icon.bin"]);
+    expect(next["icon.bin"]).toBe(content);
+    expect(buildFileTree(Object.keys(next))[0]).toEqual({
+      name: "assets",
+      path: "assets",
+      children: [],
+    });
+    expect(Object.keys(files)).toEqual(["assets/icon.bin"]);
   });
 });
 

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useRoute } from "vue-router";
-import { Gamepad2, Boxes, LogOut, ChevronRight, UserRound } from "@lucide/vue";
+import { Gamepad2, Boxes, LogOut, UserRound } from "@lucide/vue";
 import { Button } from "@/components/ui/button";
 import type { AuthUser } from "@/types";
 
@@ -18,7 +18,6 @@ const route = useRoute();
           >GenMod <span class="font-normal text-muted-foreground">Admin</span></span
         >
       </RouterLink>
-      <div class="nav-section-label">内容管理</div>
       <nav v-if="user.role === 'admin'" class="admin-nav" aria-label="管理导航">
         <RouterLink to="/games" :class="{ selected: route.path.startsWith('/games') }"
           ><Gamepad2 :size="18" />游戏管理</RouterLink
@@ -27,9 +26,6 @@ const route = useRoute();
           ><Boxes :size="18" />Skill 管理</RouterLink
         >
       </nav>
-      <div class="sidebar-note">
-        <span class="size-1.5 rounded-full bg-primary" />官方内容工作区
-      </div>
       <div class="sidebar-account">
         <span class="account-avatar"><UserRound :size="17" /></span>
         <div class="min-w-0 flex-1">
@@ -50,13 +46,6 @@ const route = useRoute();
       </div>
     </aside>
     <div class="min-w-0">
-      <header class="app-topbar">
-        <span class="text-muted-foreground">内容管理</span
-        ><ChevronRight :size="14" class="text-muted-foreground/60" /><span>{{
-          route.meta.title || "工作区"
-        }}</span
-        ><span class="ml-auto text-xs text-muted-foreground">GenMod Console</span>
-      </header>
       <main class="main-content"><slot /></main>
     </div>
   </div>
@@ -66,7 +55,7 @@ const route = useRoute();
 <style scoped>
 .admin-shell {
   display: grid;
-  grid-template-columns: 224px minmax(0, 1fr);
+  grid-template-columns: 200px minmax(0, 1fr);
   min-width: 1200px;
   min-height: 100dvh;
 }
@@ -77,13 +66,13 @@ const route = useRoute();
   display: flex;
   flex-direction: column;
   border-right: 1px solid var(--border);
-  background: var(--card);
+  background: var(--sidebar);
 }
 .brand-link {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 20px 20px 24px;
+  padding: 24px 18px 32px;
   text-decoration: none;
   font-size: 16px;
 }
@@ -92,11 +81,6 @@ const route = useRoute();
   height: 32px;
   width: 32px;
   object-fit: contain;
-}
-.nav-section-label {
-  padding: 0 24px 12px;
-  color: var(--muted-foreground);
-  font-size: 11px;
 }
 .admin-nav {
   display: grid;
@@ -122,15 +106,8 @@ const route = useRoute();
   background: var(--accent);
   font-weight: 600;
 }
-.sidebar-note {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  margin: auto 24px 24px;
-  color: var(--muted-foreground);
-  font-size: 11px;
-}
 .sidebar-account {
+  margin-top: auto;
   display: flex;
   align-items: center;
   gap: 9px;
@@ -148,20 +125,10 @@ const route = useRoute();
   background: var(--muted);
   color: var(--muted-foreground);
 }
-.app-topbar {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  height: 52px;
-  padding: 0 28px;
-  border-bottom: 1px solid var(--border);
-  background: var(--card);
-  font-size: 12px;
-}
 .main-content {
   max-width: 1760px;
   margin: 0 auto;
-  padding: 24px 28px;
+  padding: 24px;
 }
 .auth-shell {
   display: grid;

@@ -64,6 +64,8 @@ Skill 记录保存：名称、说明、类型、可选的游戏标识，以及�
 
 管理后台和 API 是两个 Worker，生产环境放在同一主域名下。后台使用父域 HttpOnly Cookie，桌面端使用访问令牌和刷新令牌。
 
+按 2026-10-28 的部署要求，管理后台作为纯静态资源 Worker，浏览器通过 `VITE_API_URL` 直接请求 API 域名，不经过 `/api` 转发或 Service Binding。API 使用 Elysia 官方 CORS 插件，按 `CORS_ORIGINS` 精确匹配管理端来源并允许携带凭证。生产部署使用 `scripts/deploy.ps1`，GitHub Actions 在默认分支提交后调用同一脚本。
+
 Workers 没有可持久化的本地磁盘。不使用 Postgres，也不把包写在服务器磁盘上。
 
 ## 4. 账号与登录

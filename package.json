@@ -1,5 +1,9 @@
 {
   "name": "gen-mod-admin",
   "private": true,
+  "scripts": {
+    "deploy": "pwsh -NoProfile -File scripts/deploy.ps1",
+    "deploy:check": "pwsh -NoProfile -File scripts/deploy.ps1 -DryRun"
+  },
   "packageManager": "pnpm@12.15.0"
 }

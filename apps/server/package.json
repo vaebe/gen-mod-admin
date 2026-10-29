@@ -8,6 +8,7 @@
     "build:worker": "wrangler deploy --dry-run"
   },
   "dependencies": {
+    "@elysia/cors": "^1.4.2",
     "elysia": "latest",
     "fflate": "^0.8.3",
     "yaml": "^2.9.1"

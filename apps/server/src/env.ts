@@ -6,6 +6,7 @@ declare global {
       ADMIN_EMAILS: string;
       JWT_SECRET: string;
       COOKIE_DOMAIN?: string;
+      CORS_ORIGINS?: string;
     }
   }
 }
