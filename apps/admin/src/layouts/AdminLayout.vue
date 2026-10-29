@@ -131,9 +131,6 @@ const route = useRoute();
   padding: 24px;
 }
 .auth-shell {
-  display: grid;
   min-height: 100dvh;
-  align-items: center;
-  padding: 24px;
 }
 </style>
