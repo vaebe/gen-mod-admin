@@ -5,11 +5,11 @@
   "type": "module",
   "scripts": {
     "dev": "vp dev",
-    "build": "run-p type-check \"build-only {@}\" --",
+    "build": "run-s type-check \"build-only {@}\" --",
     "preview": "vp preview",
     "test:unit": "vp test",
     "build-only": "vp build",
-    "type-check": "vue-tsc --build"
+    "type-check": "vue-tsc --noEmit --project tsconfig.app.json"
   },
   "dependencies": {
     "@lucide/vue": "^1.62.0",

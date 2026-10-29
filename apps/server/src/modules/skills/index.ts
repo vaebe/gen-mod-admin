@@ -22,20 +22,40 @@ export function skillRoutes(env: Env) {
       body: SkillModel.update,
       response: { 200: SkillModel.record },
     })
-    .post("/:id/versions", ({ params, body }) => SkillService.publish(env, params.id, body), {
-      authorize: "admin",
-      params: SkillModel.params,
-      body: SkillModel.upload,
-      response: { 200: SkillModel.version },
-      error({ code, set }) {
-        if (code === "VALIDATION" || code === "PARSE") {
-          set.status = 400;
-          return {
-            error: "需要版本号和 zip 文件；清单字段需有效 JSON 数组或 inspectionFile 字符串/null",
-          };
-        }
+    .post(
+      "/:id/uploads",
+      ({ params, user }) => SkillService.requestUpload(env, params.id, user.id),
+      {
+        authorize: "admin",
+        params: SkillModel.params,
       },
-    })
+    )
+    .delete(
+      "/:id/uploads/:fileId",
+      ({ params, user }) => SkillService.cleanupUpload(env, params.id, params.fileId, user.id),
+      {
+        authorize: "admin",
+        params: SkillModel.uploadParams,
+      },
+    )
+    .post(
+      "/:id/versions",
+      ({ params, body, user }) => SkillService.publish(env, params.id, body, user.id),
+      {
+        authorize: "admin",
+        params: SkillModel.params,
+        body: SkillModel.upload,
+        response: { 200: SkillModel.version },
+        error({ code, set }) {
+          if (code === "VALIDATION" || code === "PARSE") {
+            set.status = 400;
+            return {
+              error: "版本号、文件 ID、内容哈希或清单格式无效",
+            };
+          }
+        },
+      },
+    )
     .delete(
       "/:id/versions/:versionId",
       async ({ params }) => {

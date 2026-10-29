@@ -21,7 +21,7 @@ export function authRoutes(env: Env) {
           httpOnly: true,
           sameSite: "lax",
           path: "/",
-          secure: new URL(request.url).protocol === "https:",
+          secure: env.COOKIE_SECURE ?? new URL(request.url).protocol === "https:",
           maxAge: AuthService.SESSION_SECONDS,
           ...(env.COOKIE_DOMAIN ? { domain: env.COOKIE_DOMAIN } : {}),
         });
@@ -51,7 +51,7 @@ export function authRoutes(env: Env) {
             sameSite: "lax",
             path: "/",
             maxAge: 0,
-            secure: new URL(request.url).protocol === "https:",
+            secure: env.COOKIE_SECURE ?? new URL(request.url).protocol === "https:",
             ...(env.COOKIE_DOMAIN ? { domain: env.COOKIE_DOMAIN } : {}),
           });
         }

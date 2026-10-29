@@ -1,11 +1,22 @@
 import { computed, ref, shallowRef } from "vue";
-import { unzipSync, zipSync } from "fflate";
+import { zipSync } from "fflate";
+import {
+  MAX_SKILL_ZIP_BYTES,
+  type ManifestSnapshot,
+} from "../../../../../../packages/contracts/src/index";
+import {
+  hashAndValidateFiles,
+  readPackage,
+} from "../../../../../../packages/contracts/src/skill-package";
 import type { CatalogSkill, SkillMetadataPayload, SkillVersionRecord } from "@/types";
 import {
   deleteSkillVersion,
   downloadSkillFile,
   publishSkillVersion,
   updateSkill,
+  requestSkillUpload,
+  uploadSkillFile,
+  cleanupSkillUpload,
 } from "@/api/skill";
 import { useRequestState } from "@/composables/useRequestState";
 import { folderZip, readBytes } from "@/utils/skill-package";
@@ -46,6 +57,9 @@ export function useSkillEditor(getSkill: () => CatalogSkill, changed: () => void
       if (!first) {
         return;
       }
+      if (!folder && first.size > MAX_SKILL_ZIP_BYTES) {
+        throw new Error("Skill 压缩包不能超过 10 MB");
+      }
       const archive = folder ? await folderZip(selected) : await readBytes(first);
       const unpacked = unpackFiles(archive);
       if (!unpacked["SKILL.md"]) {
@@ -61,21 +75,48 @@ export function useSkillEditor(getSkill: () => CatalogSkill, changed: () => void
       if (!files.value["SKILL.md"]) {
         throw new Error("包根目录必须包含 SKILL.md");
       }
-      const form = new FormData();
-      form.set("zip", new Blob([new Uint8Array(zipSync(files.value)).buffer]), "skill.zip");
-      form.set("version", versionNumber);
-      form.set("description", metadata.value.description);
-      for (const key of [
-        "dependencies",
-        "excludePaths",
-        "requiredCommandScripts",
-        "inspectionFile",
-      ] as const) {
-        form.set(key, JSON.stringify(metadata.value[key]));
+      const currentSkill = getSkill();
+      const fileSnapshot = { ...files.value };
+      const metadataSnapshot: SkillMetadataPayload = JSON.parse(JSON.stringify(metadata.value));
+      const manifest: ManifestSnapshot = {
+        version: versionNumber,
+        dependencies: metadataSnapshot.dependencies,
+        excludePaths: metadataSnapshot.excludePaths,
+        requiredCommandScripts: metadataSnapshot.requiredCommandScripts,
+        inspectionFile: metadataSnapshot.inspectionFile,
+        ...(currentSkill.kind === "common"
+          ? { category: "common" as const, gameId: null }
+          : { category: "game" as const, gameId: currentSkill.gameId }),
+      };
+      const contentHash = await hashAndValidateFiles(fileSnapshot, manifest, {
+        name: currentSkill.name,
+        description: metadataSnapshot.description,
+      });
+      const zip = zipSync(fileSnapshot);
+      if (zip.byteLength > MAX_SKILL_ZIP_BYTES) {
+        throw new Error("Skill 压缩包不能超过 10 MB");
       }
-      await publishSkillVersion(getSkill().id, form);
-      baselineFiles.value = files.value;
-      baselineMetadata.value = JSON.stringify(metadata.value);
+      const upload = await requestSkillUpload(currentSkill.id);
+      try {
+        await uploadSkillFile(upload, zip);
+        await publishSkillVersion(currentSkill.id, {
+          ...metadataSnapshot,
+          version: versionNumber,
+          fileId: upload.fileId,
+          contentHash,
+        });
+      } catch (error) {
+        try {
+          await cleanupSkillUpload(currentSkill.id, upload.fileId);
+        } catch (cleanupError) {
+          throw new Error(
+            `${error instanceof Error ? error.message : error}；文件清理失败：${cleanupError instanceof Error ? cleanupError.message : cleanupError}`,
+          );
+        }
+        throw error;
+      }
+      baselineFiles.value = fileSnapshot;
+      baselineMetadata.value = JSON.stringify(metadataSnapshot);
       version.value = "";
       state.notice.value = "新版本已发布";
       changed();
@@ -151,5 +192,5 @@ function sameFiles(left: PackageFiles, right: PackageFiles): boolean {
 }
 
 function unpackFiles(bytes: Uint8Array): Record<string, Uint8Array> {
-  return unzipSync(bytes);
+  return readPackage(bytes);
 }

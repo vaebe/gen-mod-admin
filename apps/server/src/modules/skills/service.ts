@@ -1,3 +1,4 @@
+import type { Database } from "bun:sqlite";
 import type { Env } from "../../env";
 import type {
   CatalogSkill,
@@ -9,7 +10,6 @@ import type {
   UpdateSkill,
 } from "./model";
 import { ApiError } from "../../errors";
-import { hashAndValidate } from "../../skill-package";
 import { validName } from "../../validation";
 import { SkillCodec } from "./model";
 
@@ -62,85 +62,77 @@ function versionRecord(row: VersionRow): SkillVersionRecord {
   };
 }
 
-async function versions(db: D1Database, skillId: string): Promise<SkillVersionRecord[]> {
-  const result = await db
-    .prepare("SELECT * FROM skill_versions WHERE skill_id=? ORDER BY uploaded_at DESC,id DESC")
-    .bind(skillId)
-    .all<VersionRow>();
-  return result.results.map(versionRecord);
+async function versions(db: Database, skillId: string): Promise<SkillVersionRecord[]> {
+  const result = db
+    .query("SELECT * FROM skill_versions WHERE skill_id=? ORDER BY uploaded_at DESC,id DESC")
+    .all(skillId) as VersionRow[];
+  return result.map(versionRecord);
 }
 
-export async function read(db: D1Database, id: string): Promise<SkillRecord> {
-  const row = await db.prepare("SELECT * FROM skills WHERE id=?").bind(id).first<SkillRow>();
+export async function read(db: Database, id: string): Promise<SkillRecord> {
+  const row = db.query("SELECT * FROM skills WHERE id=?").get(id) as SkillRow | null;
   if (!row) {
     throw new ApiError(404, "Skill 不存在");
   }
   return skillRecord(row);
 }
 
-export async function list(db: D1Database): Promise<CatalogSkill[]> {
-  const result = await db.prepare("SELECT * FROM skills ORDER BY created_at,id").all<SkillRow>();
+export async function list(db: Database): Promise<CatalogSkill[]> {
+  const result = db.query("SELECT * FROM skills ORDER BY created_at,id").all() as SkillRow[];
   return Promise.all(
-    result.results.map(async (row) => ({
+    result.map(async (row) => ({
       ...skillRecord(row),
       versions: await versions(db, row.id),
     })),
   );
 }
 
-export async function create(db: D1Database, input: CreateSkill): Promise<SkillRecord> {
+export async function create(db: Database, input: CreateSkill): Promise<SkillRecord> {
   if (!validName(input.name)) {
     throw new ApiError(400, "Skill 名称无效");
   }
   const validBinding =
     input.kind === "common"
       ? input.gameId === null
-      : input.gameId &&
-        (await db.prepare("SELECT id FROM games WHERE id=?").bind(input.gameId).first());
+      : input.gameId && db.query("SELECT id FROM games WHERE id=?").get(input.gameId);
   if (!validBinding) {
     throw new ApiError(400, "游戏 Skill 必须绑定已有游戏；通用 Skill 不绑定游戏");
   }
-  if (await db.prepare("SELECT id FROM skills WHERE name=?").bind(input.name).first()) {
+  if (db.query("SELECT id FROM skills WHERE name=?").get(input.name)) {
     throw new ApiError(409, "Skill 名称已存在");
   }
   const id = crypto.randomUUID();
-  await db
-    .prepare(`
+  db.query(`
     INSERT INTO skills(id,name,description,kind,game_id,dependencies,exclude_paths,required_command_scripts,inspection_file,created_at)
     VALUES (?,?,?,?,?,?,?,?,?,?)
-  `)
-    .bind(
-      id,
-      input.name,
-      input.description,
-      input.kind,
-      input.gameId,
-      JSON.stringify(input.dependencies ?? []),
-      JSON.stringify(input.excludePaths ?? []),
-      JSON.stringify(input.requiredCommandScripts ?? []),
-      input.inspectionFile ?? null,
-      new Date().toISOString(),
-    )
-    .run();
+  `).run(
+    id,
+    input.name,
+    input.description,
+    input.kind,
+    input.gameId,
+    JSON.stringify(input.dependencies ?? []),
+    JSON.stringify(input.excludePaths ?? []),
+    JSON.stringify(input.requiredCommandScripts ?? []),
+    input.inspectionFile ?? null,
+    new Date().toISOString(),
+  );
   return read(db, id);
 }
 
-export async function update(db: D1Database, id: string, input: UpdateSkill): Promise<SkillRecord> {
+export async function update(db: Database, id: string, input: UpdateSkill): Promise<SkillRecord> {
   const old = await read(db, id);
-  await db
-    .prepare(`
+  db.query(`
     UPDATE skills SET description=?,dependencies=?,exclude_paths=?,required_command_scripts=?,inspection_file=?
     WHERE id=?
-  `)
-    .bind(
-      input.description,
-      JSON.stringify(input.dependencies ?? old.dependencies),
-      JSON.stringify(input.excludePaths ?? old.excludePaths),
-      JSON.stringify(input.requiredCommandScripts ?? old.requiredCommandScripts),
-      input.inspectionFile === undefined ? old.inspectionFile : input.inspectionFile,
-      id,
-    )
-    .run();
+  `).run(
+    input.description,
+    JSON.stringify(input.dependencies ?? old.dependencies),
+    JSON.stringify(input.excludePaths ?? old.excludePaths),
+    JSON.stringify(input.requiredCommandScripts ?? old.requiredCommandScripts),
+    input.inspectionFile === undefined ? old.inspectionFile : input.inspectionFile,
+    id,
+  );
   return read(db, id);
 }
 
@@ -158,136 +150,105 @@ function manifestFor(skill: SkillRecord, input: PublishSkill): ManifestSnapshot 
     : { ...fields, category: "game", gameId: skill.gameId };
 }
 
+export async function requestUpload(env: Env, id: string, userId: string) {
+  await read(env.DB, id);
+  const upload = env.SKILL_PACKS.upload(crypto.randomUUID());
+  env.DB.query("INSERT INTO skill_uploads(id,skill_id,user_id) VALUES (?,?,?)").run(
+    upload.fileId,
+    id,
+    userId,
+  );
+  return upload;
+}
+
+export async function cleanupUpload(env: Env, id: string, fileId: string, userId: string) {
+  const upload = env.DB.query(
+    "SELECT id FROM skill_uploads WHERE id=? AND skill_id=? AND user_id=?",
+  ).get(fileId, id, userId);
+  if (upload && !env.DB.query("SELECT id FROM skill_versions WHERE file_id=?").get(fileId)) {
+    await env.SKILL_PACKS.delete(fileId);
+    env.DB.query("DELETE FROM skill_uploads WHERE id=?").run(fileId);
+  }
+  return { ok: true };
+}
+
 export async function publish(
-  env: Pick<Env, "DB" | "SKILL_PACKS">,
+  env: Env,
   id: string,
   input: PublishSkill,
+  userId: string,
 ): Promise<SkillVersionRecord> {
   const skill = await read(env.DB, id);
-  const current = await versions(env.DB, id);
-  if (current.length >= MAX_VERSIONS) {
-    throw new ApiError(409, "最多 5 个版本，请先移除旧版本");
+  const upload = env.DB.query(
+    "SELECT id FROM skill_uploads WHERE id=? AND skill_id=? AND user_id=?",
+  ).get(input.fileId, id, userId);
+  if (!upload) {
+    throw new ApiError(400, "上传记录不存在，请重新上传");
   }
-  if (!input.version.trim()) {
-    throw new ApiError(400, "需要版本号和 zip 文件");
-  }
-  if (current.some((item) => item.version === input.version)) {
-    throw new ApiError(409, "版本号已存在；内容变更请提高版本号");
-  }
+  await env.SKILL_PACKS.stat(input.fileId);
   const description = input.description ?? skill.description;
-  if (!description.trim()) {
-    throw new ApiError(400, "需要 Skill 说明");
-  }
-  const manifest = manifestFor(skill, input);
-  const bytes = new Uint8Array(await input.zip.arrayBuffer());
-  let contentHash: string;
-  try {
-    contentHash = await hashAndValidate(bytes, manifest, { name: skill.name, description });
-  } catch (cause) {
-    throw new ApiError(400, cause instanceof Error ? cause.message : "zip 校验失败");
-  }
   const record: SkillVersionRecord = {
     id: crypto.randomUUID(),
-    skillId: skill.id,
+    skillId: id,
     version: input.version,
-    contentHash,
-    fileId: crypto.randomUUID(),
+    contentHash: input.contentHash,
+    fileId: input.fileId,
     uploadedAt: new Date().toISOString(),
-    manifest,
+    manifest: manifestFor(skill, input),
   };
-  await env.SKILL_PACKS.put(record.fileId, bytes);
-  await saveVersion(env.DB, record, description);
+  // 版本记录和当前清单一并写入，沿用版本号唯一与最多五个版本的规则。
+  env.DB.transaction(() => {
+    const current = env.DB.query("SELECT version FROM skill_versions WHERE skill_id=?").all(id) as {
+      version: string;
+    }[];
+    if (current.some((item) => item.version === input.version)) {
+      throw new ApiError(409, "版本号已存在；内容变更请提高版本号");
+    }
+    if (current.length >= MAX_VERSIONS) {
+      throw new ApiError(409, "最多 5 个版本，请先移除旧版本");
+    }
+    env.DB.query(
+      "INSERT INTO skill_versions(id,skill_id,version,content_hash,file_id,uploaded_at,manifest) VALUES (?,?,?,?,?,?,?)",
+    ).run(
+      record.id,
+      id,
+      record.version,
+      record.contentHash,
+      record.fileId,
+      record.uploadedAt,
+      JSON.stringify(record.manifest),
+    );
+    const manifest = record.manifest;
+    env.DB.query(
+      "UPDATE skills SET description=?,dependencies=?,exclude_paths=?,required_command_scripts=?,inspection_file=? WHERE id=?",
+    ).run(
+      description,
+      JSON.stringify(manifest.dependencies),
+      JSON.stringify(manifest.excludePaths),
+      JSON.stringify(manifest.requiredCommandScripts),
+      manifest.inspectionFile,
+      id,
+    );
+    env.DB.query("DELETE FROM skill_uploads WHERE id=?").run(input.fileId);
+  })();
   return record;
 }
 
-async function saveVersion(
-  db: D1Database,
-  record: SkillVersionRecord,
-  description: string,
-): Promise<void> {
-  const manifest = record.manifest;
-  // R2 已写入。条件插入和元数据更新属于同一 D1 batch，失败时列表与清单均不变。
-  const results = await db.batch([
-    db
-      .prepare(`
-      INSERT INTO skill_versions(id,skill_id,version,content_hash,file_id,uploaded_at,manifest)
-      SELECT ?,?,?,?,?,?,?
-      WHERE (SELECT COUNT(*) FROM skill_versions WHERE skill_id=?)<?
-        AND NOT EXISTS (SELECT 1 FROM skill_versions WHERE skill_id=? AND version=?)
-    `)
-      .bind(
-        record.id,
-        record.skillId,
-        record.version,
-        record.contentHash,
-        record.fileId,
-        record.uploadedAt,
-        JSON.stringify(manifest),
-        record.skillId,
-        MAX_VERSIONS,
-        record.skillId,
-        record.version,
-      ),
-    db
-      .prepare(`
-      UPDATE skills SET description=?,dependencies=?,exclude_paths=?,required_command_scripts=?,inspection_file=?
-      WHERE id=? AND EXISTS (SELECT 1 FROM skill_versions WHERE id=?)
-    `)
-      .bind(
-        description,
-        JSON.stringify(manifest.dependencies),
-        JSON.stringify(manifest.excludePaths),
-        JSON.stringify(manifest.requiredCommandScripts),
-        manifest.inspectionFile,
-        record.skillId,
-        record.id,
-      ),
-  ]);
-  if (results[0].meta.changes === 0) {
-    const duplicate = await db
-      .prepare("SELECT id FROM skill_versions WHERE skill_id=? AND version=?")
-      .bind(record.skillId, record.version)
-      .first();
-    throw new ApiError(
-      409,
-      duplicate ? "版本号已存在；内容变更请提高版本号" : "最多 5 个版本，请先移除旧版本",
-    );
-  }
-}
-
-export async function removeVersion(
-  env: Pick<Env, "DB" | "SKILL_PACKS">,
-  skillId: string,
-  versionId: string,
-): Promise<void> {
-  const row = await env.DB.prepare("SELECT * FROM skill_versions WHERE id=? AND skill_id=?")
-    .bind(versionId, skillId)
-    .first<VersionRow>();
+export async function removeVersion(env: Env, skillId: string, versionId: string): Promise<void> {
+  const row = env.DB.query("SELECT * FROM skill_versions WHERE id=? AND skill_id=?").get(
+    versionId,
+    skillId,
+  ) as VersionRow | null;
   if (!row) {
     throw new ApiError(404, "版本不存在");
   }
-  await env.DB.prepare("DELETE FROM skill_versions WHERE id=?").bind(row.id).run();
-  const referenced = await env.DB.prepare("SELECT id FROM skill_versions WHERE file_id=? LIMIT 1")
-    .bind(row.file_id)
-    .first();
-  if (!referenced) {
-    await env.SKILL_PACKS.delete(row.file_id);
-  }
+  await env.SKILL_PACKS.delete(row.file_id);
+  env.DB.query("DELETE FROM skill_versions WHERE id=?").run(row.id);
 }
 
-export async function download(
-  env: Pick<Env, "DB" | "SKILL_PACKS">,
-  fileId: string,
-): Promise<R2ObjectBody> {
-  const referenced = await env.DB.prepare("SELECT id FROM skill_versions WHERE file_id=? LIMIT 1")
-    .bind(fileId)
-    .first();
-  if (!referenced) {
+export function download(env: Env, fileId: string): string {
+  if (!env.DB.query("SELECT id FROM skill_versions WHERE file_id=? LIMIT 1").get(fileId)) {
     throw new ApiError(404, "文件不存在");
   }
-  const object = await env.SKILL_PACKS.get(fileId);
-  if (!object) {
-    throw new ApiError(404, "文件不存在");
-  }
-  return object;
+  return env.SKILL_PACKS.download(fileId);
 }

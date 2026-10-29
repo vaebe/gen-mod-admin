@@ -1,93 +1,107 @@
-# Cloudflare 部署
+# 云服务器最小 demo
 
-管理端部署为 Workers Static Assets，浏览器直接请求 API Worker；API 使用 D1 和私有 R2。CORS 使用 Elysia 官方 `@elysia/cors` 插件，生产只允许配置的管理端来源，并保留 `credentials: include` 与 HttpOnly Cookie。
-
-两个域名必须是同一主域下的 HTTPS 子域名，例如 `admin.example.com` 和 `api.example.com`，Cookie 父域为 `.example.com`。请将域名所在 Zone 接入部署使用的 Cloudflare 账号。部署脚本配置 Custom Domains，生产不开启 `workers.dev` 地址。
-
-## 一次性准备
-
-需要 Node.js 24、pnpm（版本由根 `package.json` 指定）、PowerShell 7。所有命令从仓库根目录执行。
-
-```powershell
-pnpm install --frozen-lockfile
-pnpm --filter server exec wrangler login
-pnpm --filter server exec wrangler d1 create gen-mod-admin
-pnpm --filter server exec wrangler r2 bucket create gen-mod-skill-packs
-```
-
-保存 D1 创建结果中的 `database_id`。已有同名资源时直接使用，不要重新创建。本地 Wrangler 的账号数据和 R2 文件不会自动迁移到线上。
-
-本地部署可以使用 Wrangler 登录；GitHub 部署使用 API Token。可从 Cloudflare 的 Edit Cloudflare Workers 模板创建令牌，并补齐 D1 与 R2 的编辑权限，以及目标 Zone 的读取、Worker Routes 编辑权限，范围限定到部署账号和域名。
+当前使用 Elysia + Bun + 本地 SQLite，管理端为 Vue 静态页面，Skill zip 存七牛私有空间。文件压缩、解压、内容校验和 canonical hash 在前端完成；前端直接向七牛传文件，API 只负责权限、凭证、元数据和版本规则。
 
 ## 配置
 
-本地 PowerShell 与 GitHub Actions 使用相同的环境变量。
-
-| 名称 | 内容 | GitHub 存放位置 |
-| --- | --- | --- |
-| `CLOUDFLARE_ACCOUNT_ID` | Cloudflare 账号 ID | Variables |
-| `D1_DATABASE_ID` | 生产 D1 数据库 UUID | Variables |
-| `ADMIN_ORIGIN` | `https://admin.example.com` | Variables |
-| `API_ORIGIN` | `https://api.example.com` | Variables |
-| `COOKIE_DOMAIN` | `.example.com` | Variables |
-| `CLOUDFLARE_API_TOKEN` | 部署用 API Token；本地已登录时可不设置 | Secrets |
-| `JWT_SECRET` | 生产 JWT 随机密钥，后续发布保持同一个值 | Secrets |
-| `ADMIN_EMAILS` | 管理员邮箱，多个用逗号分隔 | Secrets |
-
-`ADMIN_ORIGIN`、`API_ORIGIN` 只填写来源，不带路径。脚本自动生成 API 的 `CORS_ORIGINS`、Cookie 父域、域名绑定，以及管理端构建时的 `VITE_API_URL`，不需要手动改写 Wrangler 配置或提交账号 ID。
+从仓库根目录执行：
 
 ```powershell
-$env:CLOUDFLARE_ACCOUNT_ID = '填写账号 ID'
-$env:D1_DATABASE_ID = '填写生产数据库 UUID'
-$env:ADMIN_ORIGIN = 'https://admin.example.com'
-$env:API_ORIGIN = 'https://api.example.com'
-$env:COOKIE_DOMAIN = '.example.com'
-
-# 在受信任的本地终端设置 JWT_SECRET、ADMIN_EMAILS。
-# 使用 API Token 部署时同时设置 CLOUDFLARE_API_TOKEN。
+pnpm install --frozen-lockfile
+Copy-Item apps/server/.env.example apps/server/.env
 ```
 
-## 本地部署
+编辑 apps/server/.env，填写 JWT_SECRET、ADMIN_EMAILS 和七牛配置。不要将真实密钥提交到 Git。
 
-先预检；预检会执行管理端类型检查、生产构建与两个 Worker 的打包，不连接远端数据库，不部署，不上传密钥：
+| 配置                               | 含义                                                           |
+| ---------------------------------- | -------------------------------------------------------------- |
+| JWT_SECRET                         | 登录令牌密钥，自行生成并在重启时保持不变                       |
+| ADMIN_EMAILS                       | 管理员邮箱，多个用逗号分隔；注册或登录时确定角色               |
+| DATABASE_PATH                      | SQLite 文件位置，默认 ./data/gen-mod.sqlite，相对 API 工作目录 |
+| QINIU_ACCESS_KEY、QINIU_SECRET_KEY | 仅在 API 服务端保存的七牛密钥                                  |
+| QINIU_BUCKET                       | 正式 Skill 文件所在的私有空间                                  |
+| QINIU_UPLOAD_URL                   | 与空间区域匹配的 HTTPS 上传地址                                |
+| QINIU_RESOURCE_URL                 | 七牛资源管理地址，用于查询元信息和删除文件                     |
+| QINIU_DOWNLOAD_URL                 | 私有空间的 HTTPS 下载域名，不带文件路径                        |
+| HOST、PORT                         | API 监听地址和端口；原生默认 127.0.0.1:8787                    |
+| CORS_ORIGINS                       | 前后端跨域部署时的管理端完整来源白名单                         |
+| COOKIE_SECURE                      | HTTPS 反向代理部署时设置为 true                                |
+
+七牛上传凭证限定唯一 Key、仅允许新增、有效期 10 分钟，单个 zip 最大 **10 MB（10,000,000 字节）**。七牛下载链接有效期 10 分钟。压缩包内容不经过 API。
+
+七牛下载域名须支持 HTTPS 与浏览器 CORS。请求七牛时不携带业务 API 的 Cookie 或 Authorization。前端内容哈希使用 Web Crypto，因此请使用 HTTPS 或 localhost 打开管理端；公网 HTTP IP 地址不能完成发布。
+
+## 本地开发
+
+需要 Bun、Node.js 和根 package.json 指定的 pnpm。编辑 .env 后分别启动：
 
 ```powershell
-pnpm run deploy:check
+pnpm dev:api
+pnpm dev:admin
 ```
 
-首次部署到全新、尚无表结构的数据库：
+API 默认 http://127.0.0.1:8787，管理端使用 Vite 提示的本地地址。前端默认请求 /api，由 Vite 转发给本地 API。也可通过 apps/admin/.env 的 VITE_API_URL 指定独立 API 地址。
 
-```powershell
-pnpm run deploy -InitializeDatabase
+首次运行自动初始化一个全新 SQLite 数据库；后续启动保留已有文件。本 demo 不迁移旧 D1 或本地 Wrangler 数据，请指定新的 DATABASE_PATH。
+
+七牛配置未填写时，可以开发登录与游戏管理；上传、发布和文件下载需要真实七牛配置。使用 ADMIN_EMAILS 中的邮箱注册，再创建游戏和 Skill。
+
+## Docker Compose
+
+配置 apps/server/.env 后，在仓库根目录执行：
+
+```sh
+docker compose up -d --build
 ```
 
-后续部署：
+本机访问 http://localhost:8080。管理端 Nginx 将 /api 转发给 API，SQLite 使用 server-data 持久化卷。云服务器公网访问需由部署入口配置 HTTPS；入口和域名本轮不固定。也可用 SSH 转发到 localhost 查看 demo。
 
-```powershell
-pnpm run deploy
+更换程序时重新执行同一命令。需要查看日志时使用 docker compose logs。不要删除数据卷，数据卷与容器生命周期独立。
+
+## 不使用 Docker
+
+在 Linux 安装 Node.js、pnpm、Bun，复制代码到 /opt/gen-mod-admin 并安装依赖：
+
+```sh
+pnpm install --frozen-lockfile
+cp apps/server/.env.example apps/server/.env
+# 编辑 .env 后构建前端
+pnpm --filter gen-mod-admin-ui build
+# 当前终端运行 API
+cd apps/server
+bun run src/index.ts
 ```
 
-脚本遇到任何构建、打包或部署错误立即停止。`JWT_SECRET` 与 `ADMIN_EMAILS` 通过 Wrangler `--secrets-file` 和 API 代码一起上传；临时配置、密钥和预检产物写在已忽略的 `apps/server/.wrangler/` 下，结束时清理，不输出密钥内容。
+正式保活可使用 scripts/gen-mod-api.service：按实际位置修改 WorkingDirectory、EnvironmentFile 和 Bun 路径，再安装到 systemd。该文件只管理 API；管理端 dist 目录交给已有静态 Web 服务发布。
 
-`-InitializeDatabase` 只执行当前完整 schema，不适用于已有数据库。已有旧数据库若缺少 `users.role`，在确认数据库结构后，使用同一个生产 `database_id` 配置单独执行 `apps/server/migrations/0001_persist_user_role.sql`，不要重跑初始化。后续结构变更也应提供对应增量迁移，不在每次自动部署时盲目执行 schema。
+同源发布可参考 scripts/nginx.conf，把 proxy_pass 中的 server:8787 改成 127.0.0.1:8787，并将 root 改为 apps/admin/dist 的实际绝对路径。HTTPS 入口和证书由部署环境配置，同时设置 COOKIE_SECURE=true。独立域名发布时，在构建前设置 VITE_API_URL，并配置 API 的 CORS_ORIGINS。
 
-API 与管理端分两次部署，先 API 后管理端。如果第二步失败，API 可能已经发布；修复后重跑脚本，不会自动回滚或重新建库。
+## SQLite 手动快照
 
-## GitHub 自动部署
+原生部署在仓库根目录执行：
 
-1. 在 GitHub 仓库的 **Settings → Environments** 创建 `production`。
-2. 按上表在该 Environment 配置 Variables 和 Secrets。
-3. 确保生产数据库已完成首次初始化。
-4. 将代码合入仓库默认分支。相关应用、共享包、部署脚本或工作流的变更会触发部署。
+```sh
+pnpm backup
+```
 
-工作流位于 `.github/workflows/deploy.yml`，不依赖默认分支具体叫 `main` 还是 `master`。非默认分支不会执行生产部署，也不使用 Pull Request 触发生产发布。可在 Actions 页面手动运行，仍要求选择默认分支。
+快照写入 apps/server/backups，使用 SQLite VACUUM INTO 生成一致副本。也可以指定一个尚不存在的目标路径：
 
-GitHub 与本地调用同一个 `pnpm run deploy`。工作流只读检出代码，使用 `pnpm install --frozen-lockfile`；生产部署串行执行，不中途取消正在进行的部署。它不自动创建 D1/R2，也不发布桌面端安装包。
+```sh
+pnpm --filter server backup /absolute/path/snapshot.sqlite
+docker compose exec server bun run src/backup.ts /data/backups/snapshot.sqlite
+```
 
-## 部署后接入
+恢复时先停止 API，备份当前整个数据目录，将选择的快照放到一个新位置，再把 DATABASE_PATH 指向该文件并启动 API。快照不包含七牛文件，无法恢复已经删除的 zip。
 
-- 用 `ADMIN_EMAILS` 中的邮箱注册或登录管理端，然后创建游戏并发布 Skill。
-- 桌面端登录页服务地址填写 `API_ORIGIN`，不带 `/api`；客户端代码目前的默认值仍是本地 `8787`。
-- 生产首次联调需确认 Cookie 登录、来源白名单、发布 Skill、按 fileId 下载与客户端确认更新等真实流程。构建与 dry-run 只验证本地产物，不能替代线上验收。
+每日调度、上传快照到独立七牛备份空间、保留 7 天及自动回退，均留待后续补充。
 
-官方参考：[Elysia CORS](https://elysiajs.com/plugins/cors)、[Workers Secrets](https://developers.cloudflare.com/workers/configuration/secrets/)、[Workers Static Assets](https://developers.cloudflare.com/workers/static-assets/)。
+## demo 边界
+
+- 发布顺序：前端固定文件与清单 → 校验并计算 hash → 压缩 → 申请凭证 → 直传七牛 → 提交 JSON 版本数据。
+- 下载：API 鉴权后签发私有链接，前端直连七牛；/files/:fileId 保留重定向形式供客户端使用。
+- 上传或发布失败时，前端请求清理接口，后端只删除未被正式版本引用的上传对象。浏览器直接关闭后的遗留上传不自动回收。
+- 保留现有账号权限、游戏关联、版本号唯一与最多 5 个版本的规则。
+- 不实现后台清理、自动重试、断点恢复、服务端 zip 解压或旧数据迁移。
+- 既有 D1/R2 测试夹具及 multipart 发布测试尚未改为新契约，本轮不执行测试；本地静态检查不能替代真实七牛上传、下载与部署验证。
+
+参考：[七牛上传策略](https://developer.qiniu.com/kodo/manual/put-policy)、[私有下载](https://developer.qiniu.com/kodo/1656/download-private)、[SQLite 快照](https://www.sqlite.org/backup.html)。

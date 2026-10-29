@@ -1,22 +1,21 @@
 {
   "name": "server",
   "version": "1.0.50",
+  "module": "src/index.ts",
   "scripts": {
-    "test": "bun test src",
-    "dev": "bun run --watch src/dev.ts",
-    "dev:worker": "wrangler dev",
-    "build:worker": "wrangler deploy --dry-run"
+    "dev": "bun run --watch src/index.ts",
+    "start": "bun run src/index.ts",
+    "type-check": "tsc --noEmit",
+    "backup": "bun run src/backup.ts",
+    "test": "bun test src"
   },
   "dependencies": {
     "@elysia/cors": "^1.4.2",
-    "elysia": "latest",
-    "fflate": "^0.8.3",
-    "yaml": "^2.9.1"
+    "elysia": "latest"
   },
   "devDependencies": {
-    "@cloudflare/workers-types": "^5.20261027.1",
     "bun-types": "latest",
-    "wrangler": "^4.153.0"
-  },
-  "module": "src/index.js"
+    "fflate": "^0.8.3",
+    "typescript": "~6.0.0"
+  }
 }

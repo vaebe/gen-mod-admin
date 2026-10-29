@@ -1,6 +1,5 @@
 import { Elysia } from "elysia";
 import { cors } from "@elysia/cors";
-import { CloudflareAdapter } from "elysia/adapter/cloudflare-worker";
 import type { Env } from "./env";
 import { authRoutes } from "./modules/auth";
 import { ApiError } from "./errors";
@@ -13,7 +12,7 @@ export function createApp(env: Env) {
     .split(",")
     .map((origin) => origin.trim())
     .filter(Boolean);
-  return new Elysia({ adapter: CloudflareAdapter, normalize: "typebox" })
+  return new Elysia({ normalize: "typebox" })
     .use(
       cors({
         origin: (request) => origins.includes(request.headers.get("origin") ?? ""),

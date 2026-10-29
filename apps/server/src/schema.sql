@@ -35,6 +35,11 @@ CREATE TABLE skill_versions (
   manifest TEXT NOT NULL,
   UNIQUE (skill_id, version)
 );
+CREATE TABLE skill_uploads (
+  id TEXT PRIMARY KEY,
+  skill_id TEXT NOT NULL REFERENCES skills(id),
+  user_id TEXT NOT NULL REFERENCES users(id)
+);
 CREATE TABLE refresh_tokens (
   id TEXT PRIMARY KEY,
   user_id TEXT NOT NULL REFERENCES users(id),

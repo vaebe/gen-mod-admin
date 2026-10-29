@@ -1,5 +1,4 @@
 import { getSchemaValidator, t } from "elysia";
-import { ApiError } from "../../errors";
 
 const manifestFields = {
   dependencies: t.Array(t.String()),
@@ -60,21 +59,6 @@ const catalog = t.Union([
     versions: t.Array(version),
   }),
 ]);
-const inspectionFile = t
-  .Transform(t.String())
-  .Decode((value) => {
-    try {
-      const parsed: unknown = JSON.parse(value);
-      if (parsed === null || typeof parsed === "string") {
-        return parsed;
-      }
-    } catch {
-      throw new ApiError(400, "inspectionFile 需有效 JSON 字符串或 null");
-    }
-    throw new ApiError(400, "inspectionFile 需有效 JSON 字符串或 null");
-  })
-  .Encode((value) => JSON.stringify(value));
-
 export const SkillModel = {
   create: t.Object({
     name: t.String(),
@@ -88,14 +72,13 @@ export const SkillModel = {
     { additionalProperties: false },
   ),
   upload: t.Object({
-    version: t.String(),
-    zip: t.File(),
-    description: t.Optional(t.String()),
-    dependencies: t.Optional(t.ArrayString(t.String())),
-    excludePaths: t.Optional(t.ArrayString(t.String())),
-    requiredCommandScripts: t.Optional(t.ArrayString(t.String())),
-    inspectionFile: t.Optional(inspectionFile),
+    version: t.String({ minLength: 1, pattern: "\\S" }),
+    fileId: t.String({ format: "uuid" }),
+    contentHash: t.String({ pattern: "^[a-f0-9]{64}$" }),
+    description: t.String({ minLength: 1 }),
+    ...manifestFields,
   }),
+  uploadParams: t.Object({ id: t.String(), fileId: t.String({ format: "uuid" }) }),
   params: t.Object({ id: t.String() }),
   versionParams: t.Object({ id: t.String(), versionId: t.String() }),
   fileParams: t.Object({ fileId: t.String() }),

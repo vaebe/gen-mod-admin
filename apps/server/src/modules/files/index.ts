@@ -5,17 +5,14 @@ import { SkillModel } from "../skills/model";
 import { download } from "../skills/service";
 
 export function fileRoutes(env: Env) {
-  return new Elysia({ prefix: "/files" }).use(authGuard(env)).get(
-    "/:fileId",
-    async ({ params }) => {
-      const object = await download(env, params.fileId);
-      return new Response(object.body, {
-        headers: {
-          "content-type": "application/zip",
-          "content-disposition": `attachment; filename="${params.fileId}.zip"`,
-        },
-      });
-    },
-    { authorize: "user", params: SkillModel.fileParams },
-  );
+  return new Elysia({ prefix: "/files" })
+    .use(authGuard(env))
+    .get("/:fileId/url", ({ params }) => ({ url: download(env, params.fileId) }), {
+      authorize: "user",
+      params: SkillModel.fileParams,
+    })
+    .get("/:fileId", ({ params, redirect }) => redirect(download(env, params.fileId)), {
+      authorize: "user",
+      params: SkillModel.fileParams,
+    });
 }

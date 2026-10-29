@@ -2,8 +2,11 @@
   "name": "gen-mod-admin",
   "private": true,
   "scripts": {
-    "deploy": "pwsh -NoProfile -File scripts/deploy.ps1",
-    "deploy:check": "pwsh -NoProfile -File scripts/deploy.ps1 -DryRun"
+    "dev:api": "pnpm --filter server dev",
+    "dev:admin": "pnpm --filter gen-mod-admin-ui dev",
+    "build:admin": "pnpm --filter gen-mod-admin-ui build",
+    "backup": "pnpm --filter server backup",
+    "deploy": "docker compose up -d --build"
   },
   "packageManager": "pnpm@12.15.0"
 }

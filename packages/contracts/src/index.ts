@@ -1,3 +1,19 @@
+export const MAX_SKILL_ZIP_BYTES = 10_000_000
+
+export interface SkillUpload {
+  fileId: string
+  key: string
+  uploadUrl: string
+  token: string
+}
+
+export interface PublishSkillPayload extends ManifestFields {
+  version: string
+  description: string
+  fileId: string
+  contentHash: string
+}
+
 
 export interface GameRecord {
   id: string

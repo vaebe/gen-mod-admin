@@ -1,0 +1,12 @@
+[Unit]
+Description=GenMod API
+After=network.target
+
+[Service]
+WorkingDirectory=/opt/gen-mod-admin/apps/server
+EnvironmentFile=/opt/gen-mod-admin/apps/server/.env
+ExecStart=/usr/local/bin/bun run src/index.ts
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target

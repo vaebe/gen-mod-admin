@@ -1,3 +1,4 @@
+import type { Database } from "bun:sqlite";
 import type { Env } from "../../env";
 import type { AuthenticatedUser, AuthTokens, AuthUser, Credentials } from "./model";
 import { ApiError } from "../../errors";
@@ -25,7 +26,7 @@ export function publicUser(user: AuthUser): AuthUser {
 
 export async function register(env: AuthEnvironment, input: Credentials): Promise<AuthUser> {
   const email = input.email.trim().toLowerCase();
-  const existing = await env.DB.prepare("SELECT id FROM users WHERE email=?").bind(email).first();
+  const existing = env.DB.query("SELECT id FROM users WHERE email=?").get(email);
   if (existing) {
     throw new ApiError(409, "邮箱已注册");
   }
@@ -35,11 +36,13 @@ export async function register(env: AuthEnvironment, input: Credentials): Promis
     password_hash: await hashPassword(input.password),
     role: resolveRole(env.ADMIN_EMAILS, email),
   };
-  await env.DB.prepare(
-    "INSERT INTO users(id,email,password_hash,role,created_at) VALUES (?,?,?,?,?)",
-  )
-    .bind(user.id, email, user.password_hash, user.role, new Date().toISOString())
-    .run();
+  env.DB.query("INSERT INTO users(id,email,password_hash,role,created_at) VALUES (?,?,?,?,?)").run(
+    user.id,
+    email,
+    user.password_hash,
+    user.role,
+    new Date().toISOString(),
+  );
   return publicUser(user);
 }
 
@@ -47,23 +50,24 @@ export async function login(
   env: AuthEnvironment,
   input: Credentials,
 ): Promise<{ tokens: AuthTokens; sessionId: string }> {
-  const user = await env.DB.prepare("SELECT * FROM users WHERE email=?")
-    .bind(input.email.trim().toLowerCase())
-    .first<UserRow>();
+  const user = env.DB.query("SELECT * FROM users WHERE email=?").get(
+    input.email.trim().toLowerCase(),
+  ) as UserRow | null;
   if (!user || !(await verifyPassword(input.password, user.password_hash))) {
     throw new ApiError(401, "邮箱或密码不正确");
   }
   user.role = resolveRole(env.ADMIN_EMAILS, user.email);
-  await env.DB.prepare("UPDATE users SET role=? WHERE id=?").bind(user.role, user.id).run();
+  env.DB.query("UPDATE users SET role=? WHERE id=?").run(user.role, user.id);
   const refreshToken = crypto.randomUUID() + crypto.randomUUID();
   const expires = new Date(Date.now() + SESSION_SECONDS * 1000).toISOString();
-  await env.DB.prepare("INSERT INTO refresh_tokens VALUES (?,?,?,?)")
-    .bind(crypto.randomUUID(), user.id, await digest(refreshToken), expires)
-    .run();
+  env.DB.query("INSERT INTO refresh_tokens VALUES (?,?,?,?)").run(
+    crypto.randomUUID(),
+    user.id,
+    await digest(refreshToken),
+    expires,
+  );
   const sessionId = crypto.randomUUID();
-  await env.DB.prepare("INSERT INTO cookie_sessions VALUES (?,?,?)")
-    .bind(sessionId, user.id, expires)
-    .run();
+  env.DB.query("INSERT INTO cookie_sessions VALUES (?,?,?)").run(sessionId, user.id, expires);
   const accessToken = await createAccessToken(env.JWT_SECRET, user.id);
   return { tokens: { ...publicUser(user), accessToken, refreshToken }, sessionId };
 }
@@ -76,15 +80,13 @@ export async function authenticate(
   if (credentials.accessToken !== undefined) {
     userId = await readAccessSubject(env.JWT_SECRET, credentials.accessToken);
   } else if (credentials.sessionId) {
-    const session = await env.DB.prepare(
+    const session = env.DB.query(
       "SELECT user_id FROM cookie_sessions WHERE id=? AND expires_at>?",
-    )
-      .bind(credentials.sessionId, new Date().toISOString())
-      .first<{ user_id: string }>();
+    ).get(credentials.sessionId, new Date().toISOString()) as { user_id: string } | null;
     userId = session?.user_id;
   }
   const user = userId
-    ? await env.DB.prepare("SELECT * FROM users WHERE id=?").bind(userId).first<UserRow>()
+    ? (env.DB.query("SELECT * FROM users WHERE id=?").get(userId) as UserRow | null)
     : null;
   if (!user) {
     throw new ApiError(401, "登录凭证无效");
@@ -93,13 +95,11 @@ export async function authenticate(
 }
 
 export async function refresh(env: AuthEnvironment, refreshToken: string): Promise<AuthTokens> {
-  const token = await env.DB.prepare(
+  const token = env.DB.query(
     "SELECT user_id FROM refresh_tokens WHERE token_hash=? AND expires_at>?",
-  )
-    .bind(await digest(refreshToken), new Date().toISOString())
-    .first<{ user_id: string }>();
+  ).get(await digest(refreshToken), new Date().toISOString()) as { user_id: string } | null;
   const user = token
-    ? await env.DB.prepare("SELECT * FROM users WHERE id=?").bind(token.user_id).first<UserRow>()
+    ? (env.DB.query("SELECT * FROM users WHERE id=?").get(token.user_id) as UserRow | null)
     : null;
   if (!user) {
     throw new ApiError(401, "登录凭证无效");
@@ -112,15 +112,14 @@ export async function refresh(env: AuthEnvironment, refreshToken: string): Promi
 }
 
 export async function logout(
-  db: D1Database,
+  db: Database,
   credentials: { refreshToken?: string; sessionId?: string },
 ): Promise<void> {
   if (credentials.refreshToken) {
-    await db
-      .prepare("DELETE FROM refresh_tokens WHERE token_hash=?")
-      .bind(await digest(credentials.refreshToken))
-      .run();
+    db.query("DELETE FROM refresh_tokens WHERE token_hash=?").run(
+      await digest(credentials.refreshToken),
+    );
   } else if (credentials.sessionId) {
-    await db.prepare("DELETE FROM cookie_sessions WHERE id=?").bind(credentials.sessionId).run();
+    db.query("DELETE FROM cookie_sessions WHERE id=?").run(credentials.sessionId);
   }
 }
